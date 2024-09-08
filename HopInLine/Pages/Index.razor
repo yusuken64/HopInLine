@@ -1,0 +1,58 @@
+﻿@page "/"
+@using HopInLine.Data.Line;
+
+<h3>Welcome to HopInLine</h3>
+
+<div class="mb-4">
+    <button @onclick="NavigateToStartLine" class="btn btn-primary btn-lg">Start A Line</button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Join a Line</h5>
+        <div class="mb-3">
+            <label for="lineId" class="form-label">Enter Line ID:</label>
+            <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the Line ID here" />
+        </div>
+        <button @onclick="NavigateToJoinLine" class="btn btn-secondary btn-lg">Join</button>
+    </div>
+</div>
+@code {
+    [Inject]
+    private LineService lineService { get; set; } = null!;
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    [Inject]private OverlayService OverlayService { get; set; }
+
+    private string lineID;
+
+    private void NavigateToStartLine()
+    {
+        // Navigate to the "Start A Line" page
+        NavigationManager.NavigateTo("/start-line");
+    }
+
+    private async Task NavigateToJoinLine()
+    {
+        OverlayService.ShowOverlay();
+        // Navigation logic to join a line with the specified lineID
+        if (string.IsNullOrEmpty(lineID))
+        {
+            Console.WriteLine("Line ID is required to join a line.");
+            OverlayService.HideOverlay();
+            return;
+        }
+        var line = await lineService.GetLineByIdAsync(lineID);
+
+        if (line == null)
+        {
+            Console.WriteLine("Line ID invalid.");
+            OverlayService.HideOverlay();
+            return;
+        }
+        
+        NavigationManager.NavigateTo($"/view-line/{line.Id}");
+        OverlayService.HideOverlay();
+    }
+}

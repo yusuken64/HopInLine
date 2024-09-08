@@ -1,0 +1,21 @@
+﻿.participant-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ccc; /* Light gray border */
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow */
+}
+
+.participant-info {
+    flex-grow: 1;
+    margin-bottom: 10px; /* Space between the info and the actions */
+}
+
+.participant-actions button {
+    margin-left: 5px;
+    margin-right: 5px; /* Space between buttons */
+}

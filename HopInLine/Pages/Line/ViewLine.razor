@@ -1,0 +1,303 @@
+﻿@page "/view-line/{lineId}"
+@using HopInLine.Data.Line;
+@using Microsoft.AspNetCore.SignalR.Client;
+@if (line == null)
+{
+	if (string.IsNullOrEmpty(errorMessage))
+	{
+		<p>Loading...</p>
+	} else
+	{
+		<p>@errorMessage</p>
+	}
+}
+else
+{
+	<div style="padding-bottom: 180px;">
+		<div style="display: flex; justify-content: space-between; align-items: center;">
+			<h4 style="margin: 0;">@line.Name  - [@line.Id] </h4>
+			<div>
+				@if (line.AutoAdvanceLine &&
+					line.AutoAdvanceInterval.TotalMinutes >= 1)
+				{
+					<button @onclick="StartTimer">Start Timer</button>
+					<button @onclick="StopTimer">Stop Timer</button>
+				}
+				<button @onclick="Edit">Edit</button>
+			</div>
+		</div>
+
+		<div class="participants-list">
+			@if (line.Participants == null || line.Participants.Count == 0)
+			{
+				<p>There are no participants currently.</p>
+			}
+			else
+			{
+				@if (line.AutoAdvanceLine)
+				{
+					<div>Time left to auto-advance: @timeLeft</div>
+				}
+				@for (int i = 0; i < line.Participants.Count; i++)
+				{
+					var participant = line.Participants[i];
+					if (participant != null)
+					{
+						<ParticipantCard Name="@participant.Name"
+						 Description="@participant.Description"
+						 Id="@participant.Id"
+						 BackgroundColor="@participant.Color"
+						 TurnCount="@participant.TurnCount"
+						 OnMoveUp="@(() => MoveParticipantUp(participant))"
+						 OnMoveDown="@(() => MoveParticipantDown(participant))"
+						 OnRemove="@(() => RemoveParticipant(participant))" />
+					}
+					else
+					{
+						Console.WriteLine($"Participant at index {i} is null.");
+					}
+				}
+			}
+		</div>
+
+		<h5>Removed Participants History</h5>
+		@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+		{
+			<p>Removed participants show up here.</p>
+		}
+		else
+		{
+			@for (int i = 0; i < line.RemovedParticipants.Count; i++)
+			{
+				var participant = line.RemovedParticipants[i];
+				if (participant != null)
+				{
+					<RemovedParticipantCard Name="@participant.Name"
+							Description="@participant.Description"
+							Id="@participant.Id"
+							BackgroundColor="@participant.Color"
+							TurnCount="@participant.TurnCount"
+							OnReAdd="@(() => ReAddRemovedParticipant(participant))"
+							OnDelete="@(() => DeleteRemovedParticipant(participant))" />
+				}
+				else
+				{
+					Console.WriteLine($"Participant at index {i} is null.");
+				}
+			}
+		}
+	</div>
+
+	<div class="toolbar">
+		<div class="toolbar-input">
+			<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" />
+			<button @onclick="AddParticipant" class="btn btn-success">Add</button>
+		</div>
+		<button @onclick="AdvanceLine" class="btn btn-warning">Advance</button>
+	</div>
+}
+
+<style>
+	.toolbar {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		background-color: #f8f9fa;
+		border-top: 1px solid #ddd;
+		padding: 10px;
+		box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		z-index: 1000; /* Ensure it's on top */
+	}
+
+	.toolbar-input {
+		display: flex;
+		align-items: center;
+	}
+
+		.toolbar-input .form-control {
+			margin-right: 10px;
+			flex: 1; /* Allow the input to take available space */
+		}
+
+	.toolbar .btn {
+		white-space: nowrap; /* Prevent button text from wrapping */
+	}
+</style>
+
+@code {
+	private string newParticipant;
+
+	[Inject]
+	private LineService lineService { get; set; } = null!;
+
+	[Inject]
+	private NavigationManager NavigationManager { get; set; }
+	[Inject]
+	private OverlayService OverlayService { get; set; } = null!;
+
+	[Parameter]
+	public string lineId { get; set; }
+
+	private Line? line;
+	private HubConnection hubConnection;
+	private string timeLeft;
+	private System.Timers.Timer timer;
+	private uint updatedId = 0;
+	private string errorMessage = null;
+
+	protected override async Task OnInitializedAsync()
+	{
+		OverlayService.ShowOverlay();
+		line = await lineService.GetLineByIdAsync(lineId);
+
+		if (line == null) 
+		{
+			errorMessage = "line not found";
+			OverlayService.HideOverlay();
+			return;
+		}
+
+		hubConnection = new HubConnectionBuilder()
+			.WithUrl(NavigationManager.ToAbsoluteUri("/linehub"))
+			.Build();
+
+		hubConnection.On<Line, uint>("UpdateLine", (newLine, updateId) =>
+		{
+			if (updateId >= updatedId)
+			{
+				updatedId = updateId;
+				line = newLine;
+				InvokeAsync(StateHasChanged);
+			}
+		});
+
+		await hubConnection.StartAsync();
+		await hubConnection.SendAsync("JoinLineGroup", line.Id);
+
+		OverlayService.HideOverlay();
+		StartCountdown();
+	}
+
+	private void StartCountdown()
+	{
+		UpdateTimeLeft();
+		timer = new System.Timers.Timer(1000);
+		timer.Elapsed += (sender, args) =>
+		{
+			InvokeAsync(() =>
+			{
+				UpdateTimeLeft();
+				InvokeAsync(StateHasChanged);
+			});
+		};
+		timer.Start();
+	}
+
+	private void UpdateTimeLeft()
+	{
+		var remainingTime = line.CountDownStart.Add(line.AutoAdvanceInterval) - DateTime.UtcNow;
+		timeLeft = remainingTime > TimeSpan.Zero ? remainingTime.ToString(@"mm\:ss") : "00:00";
+		if (remainingTime <= TimeSpan.Zero)
+		{
+			timeLeft = "Auto-advance happening now...";
+		}
+	}
+
+	private async Task AddParticipant()
+	{
+		OverlayService.ShowOverlay();
+		if (!string.IsNullOrWhiteSpace(newParticipant))
+		{
+			await hubConnection.SendAsync("AddParticipant", line.Id, new Participant()
+				{
+					Name = newParticipant,
+					Description = "",
+					Id = ParticipantFactory.NewParticipantID(),
+					Color = ParticipantFactory.GenerateUniqueColor()
+				});
+			newParticipant = string.Empty;
+		}
+		OverlayService.HideOverlay();
+	}
+
+	private async Task AdvanceLine()
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("AdvanceLine", line.Id);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task MoveParticipantUp(Participant participant)
+	{
+		OverlayService.ShowOverlay();
+		var instanceId = participant.Id;
+		await hubConnection.SendAsync("MoveParticipantUp", line.Id, (object)instanceId);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task MoveParticipantDown(Participant participant)
+	{
+		OverlayService.ShowOverlay();
+		var instanceId = participant.Id;
+		await hubConnection.SendAsync("MoveParticipantDown", line.Id, (object)instanceId);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task RemoveParticipant(Participant participant)
+	{
+		OverlayService.ShowOverlay();
+		var instanceId = participant.Id;
+		await hubConnection.SendAsync("RemoveParticipant", line.Id, (object)instanceId);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task ReAddRemovedParticipant(Participant participant)
+	{
+		OverlayService.ShowOverlay();
+		var instanceId = participant.Id;
+		await hubConnection.SendAsync("ReAddRemovedParticipant", line.Id, (object)instanceId);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task DeleteRemovedParticipant(Participant participant)
+	{
+		OverlayService.ShowOverlay();
+		var instanceId = participant.Id;
+		await hubConnection.SendAsync("DeleteRemovedParticipant", line.Id, (object)instanceId);
+		OverlayService.HideOverlay();
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (hubConnection != null)
+		{
+			await hubConnection.SendAsync("LeaveLineGroup", line.Id);
+			await hubConnection.DisposeAsync();
+		}
+	}
+
+	// Method to start the timer
+	private async Task StartTimer()
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("StartTimer", line.Id);
+		OverlayService.HideOverlay();
+	}
+
+	// Method to stop the timer
+	private async Task StopTimer()
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("StopTimer", line.Id);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task Edit()
+	{
+		NavigationManager.NavigateTo($"/edit-line/{lineId}");
+	}
+}

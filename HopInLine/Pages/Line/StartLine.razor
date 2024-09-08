@@ -1,0 +1,91 @@
+﻿@page "/start-line"
+@using HopInLine.Data.Line;
+
+<h3>Start A Line</h3>
+
+<div>
+    <p>To start a new line, please enter the following details:</p>
+</div>
+
+<div class="form-group">
+    <label for="lineName">Line Name:</label>
+    <input type="text" id="lineName" @bind="lineName" class="form-control" placeholder="Enter line name" />
+</div>
+
+<div class="form-group">
+    <label for="description">Description:</label>
+    <textarea id="description" @bind="description" class="form-control" placeholder="Enter description"></textarea>
+</div>
+
+<div class="form-group">
+    <label for="autoAdvanceLine">Auto-Advance Line:</label>
+    <input type="checkbox" id="autoAdvanceLine" @bind="autoAdvanceLine" class="form-check-input" />
+</div>
+
+<div class="form-group">
+    <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
+    <input type="number"
+           id="autoAdvanceMinutes"
+           @bind="autoAdvanceMinutes"
+           class="form-control"
+           disabled="@(autoAdvanceLine ? false : true)"
+           min="1"
+           max="999"
+           step="1" />
+</div>
+<div class="form-group">
+    <label for="autoReAdd">Auto Re-Add:</label>
+    <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
+</div>
+
+<button @onclick="CreateLine" class="btn btn-success">Create Line</button>
+<button @onclick="Cancel" class="btn btn-danger">Cancel</button>
+
+@code {
+    [Inject]
+    private LineService LineService { get; set; } = null!;
+    [Inject]
+    private OverlayService OverlayService { get; set; } = null!;
+    private string lineName;
+    private string description;
+    private bool autoAdvanceLine; 
+    private int autoAdvanceMinutes;
+    private DateTime autoAdvanceInterval;
+    private bool autoReAdd;
+
+    private async Task CreateLine()
+    {
+        OverlayService.ShowOverlay();
+        if (string.IsNullOrWhiteSpace(lineName))
+        {
+            lineName = "New Line";
+        }
+
+        var newLine = await LineService.CreateLineAsync(
+            lineName,
+            description,
+            autoReAdd,
+            autoAdvanceLine,
+            TimeSpan.FromMinutes(autoAdvanceMinutes));
+
+        if (newLine == null)
+        {
+            //Error occurred
+            OverlayService.HideOverlay();
+            return;
+        }
+        else
+        {
+            NavigationManager.NavigateTo($"/view-line/{newLine.Id}");
+        }
+    }
+
+    private void Cancel()
+    {
+        // Navigate back to the home page or previous page
+        NavigationManager.NavigateTo("/");
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+}

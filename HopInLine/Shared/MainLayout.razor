@@ -1,0 +1,47 @@
+﻿@inherits LayoutComponentBase
+
+<CascadingValue Value="OverlayService">
+    <Overlay IsVisible="@isOverlayVisible" />
+
+<PageTitle>HopInLine</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+</CascadingValue>
+
+@code {
+    private bool isOverlayVisible;
+
+    [Inject] public OverlayService OverlayService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        OverlayService.OnShowOverlay += ShowOverlay;
+        OverlayService.OnHideOverlay += HideOverlay;
+    }
+
+    private void ShowOverlay()
+    {
+        isOverlayVisible = true;
+        StateHasChanged(); // Notify Blazor to re-render
+    }
+
+    private void HideOverlay()
+    {
+        isOverlayVisible = false;
+        StateHasChanged(); // Notify Blazor to re-render
+    }
+}

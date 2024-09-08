@@ -1,0 +1,38 @@
+﻿@page "/list-lines"
+@using HopInLine.Data.Line;
+@inject LineService LineService
+
+@code {
+    private List<Line> lines;
+
+    protected override async Task OnInitializedAsync()
+    {
+        lines = await LineService.GetAllLinesAsync();
+    }
+
+    private string GetLineUrl(string lineId) => $"/view-line/{lineId}";
+}
+
+<h3>List of Lines</h3>
+
+@if (lines == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!lines.Any())
+{
+    <p>No lines available.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var line in lines)
+        {
+            <li class="list-group-item">
+                <NavLink class="text-decoration-none" href="@GetLineUrl(line.Id)">
+                    <strong>@line.Name</strong> - [@line.Id] (@(line.Participants.Count + line.RemovedParticipants.Count)) - @line.Description
+                </NavLink>
+            </li>
+        }
+    </ul>
+}

@@ -1,0 +1,57 @@
+﻿<!-- RemovedParticipantCard.razor -->
+<div class="participant-card" style="background-color: @BackgroundColor;">
+    <div class="participant-info">
+        <h5>@Name (@TurnCount)</h5>
+        <p>@Description</p>
+    </div>
+    <div class="participant-actions">
+        <button @onclick="ReAdd">Re-Add</button>
+        <button @onclick="Delete">Delete</button>
+    </div>
+</div>
+
+<style>
+    .participant-card {
+        position: relative; /* Allows absolute positioning of child elements */
+        border: 1px solid #ccc; /* Light gray border */
+        padding: 10px; /* Padding inside the card */
+        margin-bottom: 10px; /* Space between cards */
+        border-radius: 5px; /* Rounded corners */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow */
+        height: 85px;
+        background-color: @BackgroundColor; /* Background color */
+    }
+
+    .participant-info {
+        margin-bottom: 50px; /* Space between the info and the actions */
+        /* Adjust this margin to ensure space for the buttons */
+    }
+
+    .participant-actions {
+        position: absolute; /* Position the container absolutely within the card */
+        top: 10px; /* Distance from the top edge */
+        right: 10px; /* Distance from the right edge */
+        display: flex; /* Display buttons in a row */
+        gap: 5px; /* Space between buttons */
+    }
+
+        .participant-actions button {
+            /* Additional button styling if needed */
+        }
+</style>
+
+
+@code {
+    [Parameter] public string Name { get; set; }
+    [Parameter] public string Description { get; set; }
+    [Parameter] public string Id { get; set; }
+    [Parameter] public string BackgroundColor { get; set; }
+    [Parameter] public int TurnCount { get; set; }
+
+
+    [Parameter] public EventCallback OnReAdd { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    private async Task ReAdd() => await OnReAdd.InvokeAsync(null);
+    private async Task Delete() => await OnDelete.InvokeAsync(null);
+}
