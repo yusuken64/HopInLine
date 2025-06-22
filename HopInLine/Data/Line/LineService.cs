@@ -106,7 +106,7 @@ namespace HopInLine.Data.Line
                 }
                 else
                 {
-                    line.RemovedParticipants.Add(removedParticipant);
+                    //line.RemovedParticipants.Add(removedParticipant);
                 }
             }
             RestartTimer(line);
@@ -179,8 +179,9 @@ namespace HopInLine.Data.Line
             if (participant != null)
             {
                 var originalIndex = line.Participants.IndexOf(participant);
-                line.Participants.Remove(participant);
-                line.RemovedParticipants.Add(participant);
+                //line.Participants.Remove(participant);
+                //line.RemovedParticipants.Add(participant);
+                participant.Removed = true;
                 if (originalIndex == 0)
                 {
                     RestartTimer(line);
@@ -197,7 +198,7 @@ namespace HopInLine.Data.Line
             var removedParticipant = line.RemovedParticipants.FirstOrDefault(x => x.Id.Equals(instanceId));
             if (removedParticipant != null)
             {
-                line.RemovedParticipants.Remove(removedParticipant);
+                //line.RemovedParticipants.Remove(removedParticipant);
                 line.Participants.Add(removedParticipant);
             }
             if (originalFirstParticipant == null)
@@ -240,5 +241,22 @@ namespace HopInLine.Data.Line
 			lineUpdatedNotifier.StopLineAdvancement(lineId);
 			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
 		}
+
+        public static LineViewModel ToLiveViewModel(Line line)
+        {
+            return new()
+            {
+                AutoAdvanceInterval = line.AutoAdvanceInterval,
+                AutoAdvanceLine = line.AutoAdvanceLine,
+                AutoReAdd = line.AutoReAdd,
+                CountDownStart = line.CountDownStart,
+                Description = line.Description,
+                Id = line.Id,
+                LastUpdated = line.LastUpdated,
+                Name = line.Name,
+                Participants = line.Participants.Where(x => !x.Removed).ToList(),
+                RemovedParticipants = line.Participants.Where(x => x.Removed).ToList()
+            };
+        }
 	}
 }

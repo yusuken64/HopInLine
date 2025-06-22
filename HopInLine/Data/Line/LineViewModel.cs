@@ -2,7 +2,7 @@
 
 namespace HopInLine.Data.Line
 {
-	public class Line
+	public class LineViewModel
 	{
 		public string Id { get; set; }
 		public string Name { get; set; }
@@ -10,8 +10,7 @@ namespace HopInLine.Data.Line
 
 		// Keep just one Participants collection with all participants
 		public List<Participant> Participants { get; set; } = new List<Participant>();
-		[NotMapped]
-		public IEnumerable<Participant> RemovedParticipants => Participants.Where(p => p.Removed);
+		public List<Participant> RemovedParticipants { get; set; } = new List<Participant>();
 
 		public DateTime LastUpdated { get; set; }
 		public bool AutoAdvanceLine { get; set; }

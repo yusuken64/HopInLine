@@ -1,0 +1,30 @@
+﻿version: "3.8"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ConnectionStrings__DefaultConnection=Server=db;Database=hopinline;User=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True
+    depends_on:
+      - db
+    volumes:
+      - dataprotection:/root/.aspnet/DataProtection-Keys
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlvolume:/var/opt/mssql
+
+volumes:
+  sqlvolume:
+  dataprotection:

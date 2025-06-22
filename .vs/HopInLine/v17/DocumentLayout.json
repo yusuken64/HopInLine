@@ -1,0 +1,55 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\line.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\line.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\linechangedeventargs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\linechangedeventargs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "LineChangedEventArgs.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineChangedEventArgs.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineChangedEventArgs.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineChangedEventArgs.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineChangedEventArgs.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-22T06:36:09.162Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Line.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\Line.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\Line.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAA3wAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-22T08:08:08.499Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

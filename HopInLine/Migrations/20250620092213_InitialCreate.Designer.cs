@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -10,41 +11,45 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HopInLine.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240829230411_InitialCreate")]
+    [Migration("20250620092213_InitialCreate")]
     partial class InitialCreate
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.33");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "7.0.8")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("HopInLine.Data.Line.Line", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("AudoReAdd")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<TimeSpan>("AutoAdvanceInterval")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("time");
 
                     b.Property<bool>("AutoAdvanceLine")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("AutoReAdd")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("CountDownStart")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -54,58 +59,53 @@ namespace HopInLine.Migrations
             modelBuilder.Entity("HopInLine.Data.Line.Participant", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Color")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("InstanceID")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LineId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LineId1")
-                        .HasColumnType("TEXT");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Removed")
+                        .HasColumnType("bit");
 
                     b.Property<int>("TurnCount")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("LineId");
-
-                    b.HasIndex("LineId1");
 
                     b.ToTable("Participants");
                 });
 
             modelBuilder.Entity("HopInLine.Data.Line.Participant", b =>
                 {
-                    b.HasOne("HopInLine.Data.Line.Line", null)
+                    b.HasOne("HopInLine.Data.Line.Line", "Line")
                         .WithMany("Participants")
-                        .HasForeignKey("LineId");
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("HopInLine.Data.Line.Line", null)
-                        .WithMany("RemovedParticipants")
-                        .HasForeignKey("LineId1");
+                    b.Navigation("Line");
                 });
 
             modelBuilder.Entity("HopInLine.Data.Line.Line", b =>
                 {
                     b.Navigation("Participants");
-
-                    b.Navigation("RemovedParticipants");
                 });
 #pragma warning restore 612, 618
         }

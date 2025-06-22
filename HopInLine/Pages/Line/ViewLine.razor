@@ -61,7 +61,7 @@ else
 		</div>
 
 		<h5>Removed Participants History</h5>
-		@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+		@* @if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
 		{
 			<p>Removed participants show up here.</p>
 		}
@@ -85,7 +85,7 @@ else
 					Console.WriteLine($"Participant at index {i} is null.");
 				}
 			}
-		}
+		} *@
 	</div>
 
 	<div class="toolbar">
@@ -161,9 +161,19 @@ else
 			return;
 		}
 
+		var isDocker = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker";
+		var hubUri = isDocker
+			? new Uri("http://host.docker.internal:8080/linehub")
+			: NavigationManager.ToAbsoluteUri("/linehub");
+
+		Console.WriteLine($"🔍 HubConnection will use URI: {hubUri}");
+
 		hubConnection = new HubConnectionBuilder()
-			.WithUrl(NavigationManager.ToAbsoluteUri("/linehub"))
+			.WithUrl(hubUri)
+			.WithAutomaticReconnect()
 			.Build();
+
+
 
 		hubConnection.On<Line, uint>("UpdateLine", (newLine, updateId) =>
 		{

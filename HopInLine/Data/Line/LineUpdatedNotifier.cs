@@ -1,49 +1,39 @@
-﻿namespace HopInLine.Data.Line
+﻿using Microsoft.AspNetCore.SignalR;
+
+namespace HopInLine.Data.Line
 {
-    public class LineUpdatedNotifier
-    {
-        private readonly IServiceScopeFactory _serviceScopeFactory;
+	public class LineUpdatedNotifier
+	{
+		private readonly IHubContext<LineHub> hubContext;
+		private readonly LineAdvancementService advancement;
 
-        public LineUpdatedNotifier(IServiceScopeFactory serviceScopeFactory)
-        {
-            _serviceScopeFactory = serviceScopeFactory;
-        }
+		public event Func<object, LineChangedEventArgs, Task>? LineUpdated;
 
-        public async Task NotifyLineUpdatedAsync(LineChangedEventArgs args)
-        {
-            try
-            {
-                using (var scope = _serviceScopeFactory.CreateAsyncScope())
-                {
-                    var lineRepository = scope.ServiceProvider.GetRequiredService<ILineRepository>();
-                    await lineRepository.UpdateLineAsync(args.line);
+		public LineUpdatedNotifier(IHubContext<LineHub> hubContext, LineAdvancementService advancement)
+		{
+			this.hubContext = hubContext;
+			this.advancement = advancement;
+			advancement.LineUpdated += async (s, e) =>
+			{
+				await hubContext.Clients.Group(e.line.Id).SendAsync("UpdateLine", e.line, e.updateId);
+				if (LineUpdated != null)
+					await LineUpdated.Invoke(this, e);
+			};
+		}
 
-                    var updatedLine = await lineRepository.GetLineAsync(args.line.Id);
-                    var lineAdvancementService = scope.ServiceProvider.GetRequiredService<LineAdvancementService>();
-                    await lineAdvancementService.OnLineUpdated(new LineChangedEventArgs(updatedLine));
-                }
-            } catch (Exception ex)
-            {
+		internal async Task NotifyLineUpdatedAsync(LineChangedEventArgs lineChangedEventArgs)
+		{
+			await advancement.OnLineUpdated(lineChangedEventArgs);
+		}
 
-            }
-        }
+		internal void StartLineAdvancement(Line line)
+		{
+			//throw new NotImplementedException();
+		}
 
-        internal void StartLineAdvancement(Line line)
-        {
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var lineAdvancementService = scope.ServiceProvider.GetRequiredService<LineAdvancementService>();
-                lineAdvancementService.StartLineAdvancement(line);
-            }
-        }
-
-        internal void StopLineAdvancement(string id)
-        {
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var lineAdvancementService = scope.ServiceProvider.GetRequiredService<LineAdvancementService>();
-                lineAdvancementService.StopLineAdvancement(id);
-            }
-        }
-    }
+		internal void StopLineAdvancement(string id)
+		{
+			//throw new NotImplementedException();
+		}
+	}
 }

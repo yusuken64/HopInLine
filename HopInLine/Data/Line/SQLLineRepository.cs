@@ -5,11 +5,11 @@ using System.Net.NetworkInformation;
 
 namespace HopInLine.Data.Line
 {
-    public class SQLLiteLineRepository : ILineRepository
+    public class SQLLineRepository : ILineRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public SQLLiteLineRepository(ApplicationDbContext context)
+        public SQLLineRepository(ApplicationDbContext context)
         {
             _context = context;
         }
@@ -109,7 +109,7 @@ namespace HopInLine.Data.Line
 
                 // Assign the separated lists back to the line
                 line.Participants = activeParticipants;
-                line.RemovedParticipants = removedParticipants;
+                //line.RemovedParticipants = removedParticipants;
             }
 
             return line;
@@ -204,9 +204,9 @@ namespace HopInLine.Data.Line
                 .AsNoTracking()
                 .ToListAsync();
 
-            for (int i = 0; i < line.RemovedParticipants.Count; i++)
+            for (int i = 0; i < line.RemovedParticipants.Count(); i++)
             {
-                var removedParticipant = line.RemovedParticipants[i];
+                var removedParticipant = line.RemovedParticipants.ToList()[i];
                 removedParticipant.Position = i;
                 removedParticipant.Removed = true;
 

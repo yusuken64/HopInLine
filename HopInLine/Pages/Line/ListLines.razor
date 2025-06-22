@@ -30,7 +30,7 @@ else
         {
             <li class="list-group-item">
                 <NavLink class="text-decoration-none" href="@GetLineUrl(line.Id)">
-                    <strong>@line.Name</strong> - [@line.Id] (@(line.Participants.Count + line.RemovedParticipants.Count)) - @line.Description
+                    <strong>@line.Name</strong> - [@line.Id] (@(line.Participants.Count + line.RemovedParticipants.Count())) - @line.Description
                 </NavLink>
             </li>
         }

@@ -9,15 +9,19 @@ builder.Services.AddScoped<LineService>();
 builder.Services.AddSingleton<ParticipantFactory>();
 builder.Services.AddSignalR();
 
-builder.Services.AddSingleton<ILineRepository, InMemoryLineRepository>();
-//builder.Services.AddScoped<ILineRepository, SQLLiteLineRepository>();
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<LineUpdatedNotifier>();
+builder.Services.AddSingleton<LineUpdatedNotifier>();
 builder.Services.AddSingleton<LineAdvancementService>();
 
 builder.Services.AddScoped<OverlayService>();
+
+builder.Configuration
+	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+	.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+	.AddEnvironmentVariables();
 
 var app = builder.Build();
 
@@ -38,5 +42,16 @@ app.UseRouting();
 app.MapBlazorHub();
 app.MapHub<LineHub>("/linehub");
 app.MapFallbackToPage("/_Host");
+
+using (var scope = app.Services.CreateScope())
+{
+	var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+	var pendingMigrations = db.Database.GetPendingMigrations();
+
+	if (pendingMigrations.Any())
+	{
+		db.Database.Migrate();
+	}
+}
 
 app.Run();

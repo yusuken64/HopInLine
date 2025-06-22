@@ -11,13 +11,19 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-    }
+	protected override void OnModelCreating(ModelBuilder modelBuilder)
+	{
+		base.OnModelCreating(modelBuilder);
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlite("Data Source=app.db");
-    }
+		modelBuilder.Entity<Participant>()
+			.HasOne(p => p.Line)
+			.WithMany(l => l.Participants)
+			.HasForeignKey(p => p.LineId)
+			.OnDelete(DeleteBehavior.Cascade); // or Restrict, depending on your needs
+	}
+
+	//protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+	//{
+	//    optionsBuilder.UseSqlServer("Data Source=app.db");
+	//}
 }
