@@ -3,12 +3,12 @@ namespace HopInLine.Data.Line
 {
 	public class LineChangedEventArgs
 	{
-		public Line line;
+		public LineDto line;
 		public int updateId;
 
 		public LineChangedEventArgs(Line line)
 		{
-			this.line = line;
+			this.line = LineDto.FromLine(line);
 		}
 	}
 }

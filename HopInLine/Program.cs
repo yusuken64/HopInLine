@@ -50,6 +50,7 @@ using (var scope = app.Services.CreateScope())
 
 	if (pendingMigrations.Any())
 	{
+		db.Database.EnsureDeleted();
 		db.Database.Migrate();
 	}
 }

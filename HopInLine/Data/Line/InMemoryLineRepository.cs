@@ -37,7 +37,12 @@ namespace HopInLine.Data.Line
             }
         }
 
-        public async Task DeleteParticipantAsync(string lineID, string instanceId)
+		public Task AdvanceLineAsync(string lineID)
+		{
+			throw new NotImplementedException();
+		}
+
+		public async Task DeleteParticipantAsync(string lineID, string instanceId)
         {
             if (_lines.TryGetValue(lineID, out var line))
             {
@@ -78,7 +83,27 @@ namespace HopInLine.Data.Line
             return _lines.ContainsKey(newId);
         }
 
-        public void RemoveLine(string id)
+		public Task MoveParticipantDownAsync(string lineID, string participantID)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task MoveParticipantUpAsync(string lineID, string participantID)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task ReAddRemovedParticipantAsync(string lineID, string particiantID)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task RemovedParticipantAsync(string lineID, string participantID)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void RemoveLine(string id)
         {
             if (!_lines.TryRemove(id, out _))
             {

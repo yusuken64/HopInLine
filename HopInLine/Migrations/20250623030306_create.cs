@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HopInLine.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class create : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,7 +22,8 @@ namespace HopInLine.Migrations
                     AutoAdvanceLine = table.Column<bool>(type: "bit", nullable: false),
                     AutoAdvanceInterval = table.Column<TimeSpan>(type: "time", nullable: false),
                     CountDownStart = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    AutoReAdd = table.Column<bool>(type: "bit", nullable: false)
+                    AutoReAdd = table.Column<bool>(type: "bit", nullable: false),
+                    NextPosition = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

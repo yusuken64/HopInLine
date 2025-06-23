@@ -1,4 +1,6 @@
 ﻿using HopInLine.Pages.Line;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -94,20 +96,12 @@ namespace HopInLine.Data.Line
 
         public async Task AdvanceLineAsync(string lineID)
         {
-            var line = await _lineRepository.GetLineAsync(lineID);
-            var removedParticipant = line.Participants[0];
-            if (removedParticipant != null)
+            await _lineRepository.AdvanceLineAsync(lineID);
+			var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null ||
+                line.Participants.IsNullOrEmpty())
             {
-                removedParticipant.TurnCount++;
-                line.Participants.Remove(removedParticipant);
-                if (line.AutoReAdd)
-                {
-                    line.Participants.Add(removedParticipant);
-                }
-                else
-                {
-                    //line.RemovedParticipants.Add(removedParticipant);
-                }
+                return;
             }
             RestartTimer(line);
             await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
@@ -128,83 +122,68 @@ namespace HopInLine.Data.Line
             }
         }
 
-        internal async Task MoveParticipantUpAsync(string lineID, string instanceId)
+        internal async Task MoveParticipantUpAsync(string lineID, string participantID)
         {
             var line = await _lineRepository.GetLineAsync(lineID);
             if (line == null) { return; }
-            var originalFirstParticipant = line.Participants[0];
-            var participant = line.Participants.FirstOrDefault(x => x.Id.Equals(instanceId));
-            if (participant != null)
-            {
-                var index = line.Participants.IndexOf(participant);
-                var temp = line.Participants[index];
-                line.Participants[index] = line.Participants[index - 1];
-                line.Participants[index - 1] = temp;
-            }
+            var originalFirstParticipant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
 
-            if (participant != originalFirstParticipant)
+            await _lineRepository.MoveParticipantUpAsync(lineID, participantID);
+            line = await _lineRepository.GetLineAsync(lineID);
+            var participant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
+
+            if (participant?.Id != originalFirstParticipant?.Id)
             {
                 RestartTimer(line);
             }
             await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
         }
 
-        internal async Task MoveParticipantDownAsync(string lineID, string instanceId)
+        internal async Task MoveParticipantDownAsync(string lineID, string participantID)
         {
             var line = await _lineRepository.GetLineAsync(lineID);
             if (line == null) { return; }
-            var originalFirstParticipant = line.Participants[0];
-            var participant = line.Participants.FirstOrDefault(x => x.Id.Equals(instanceId));
-            if (participant != null)
-            {
-                var index = line.Participants.IndexOf(participant);
-                var temp = line.Participants[index];
-                line.Participants[index] = line.Participants[index + 1];
-                line.Participants[index + 1] = temp;
-            }
-            if (participant != originalFirstParticipant)
+            var originalFirstParticipant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
+
+            await _lineRepository.MoveParticipantDownAsync(lineID, participantID);
+            line = await _lineRepository.GetLineAsync(lineID);
+            var participant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
+
+            if (participant?.Id != originalFirstParticipant?.Id)
             {
                 RestartTimer(line);
             }
             await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
         }
 
-        internal async Task RemoveParticipantAsync(string lineID, string instanceId)
+        internal async Task RemoveParticipantAsync(string lineID, string participantID)
         {
             var line = await _lineRepository.GetLineAsync(lineID);
             if (line == null) { return; }
+            var first = line.Participants
+                .Where(x => !x.Removed)
+                .OrderBy(x => x.Position).FirstOrDefault();
 
-            var originalFirstParticipant = line.Participants[0];
-            var participant = line.Participants.FirstOrDefault(x => x.Id.Equals(instanceId));
-            if (participant != null)
+            await _lineRepository.RemovedParticipantAsync(lineID, participantID);
+            line = await _lineRepository.GetLineAsync(lineID);
+
+            if (first?.Id == participantID)
             {
-                var originalIndex = line.Participants.IndexOf(participant);
-                //line.Participants.Remove(participant);
-                //line.RemovedParticipants.Add(participant);
-                participant.Removed = true;
-                if (originalIndex == 0)
-                {
-                    RestartTimer(line);
-                }
+                RestartTimer(line);
             }
             await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
         }
 
-        internal async Task ReAddRemovedParticipantAsync(string lineID, string instanceId)
+        internal async Task ReAddRemovedParticipantAsync(string lineID, string participantID)
         {
             var line = await _lineRepository.GetLineAsync(lineID);
             if (line == null) { return; }
-            var originalFirstParticipant = line.Participants.Any() ? line.Participants[0] : null;
-            var removedParticipant = line.RemovedParticipants.FirstOrDefault(x => x.Id.Equals(instanceId));
-            if (removedParticipant != null)
-            {
-                //line.RemovedParticipants.Remove(removedParticipant);
-                line.Participants.Add(removedParticipant);
-            }
-            if (originalFirstParticipant == null)
-            {
-                RestartTimer(line);
-            }
+            var removedParticipant = line.Participants.FirstOrDefault(x => x.Id.Equals(participantID));
+            if (removedParticipant == null) { return; }
+
+            await _lineRepository.ReAddRemovedParticipantAsync(lineID, participantID);
+            line = await _lineRepository.GetLineAsync(lineID);
+
             await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
         }
 

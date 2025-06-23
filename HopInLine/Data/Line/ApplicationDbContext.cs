@@ -19,11 +19,6 @@ public class ApplicationDbContext : DbContext
 			.HasOne(p => p.Line)
 			.WithMany(l => l.Participants)
 			.HasForeignKey(p => p.LineId)
-			.OnDelete(DeleteBehavior.Cascade); // or Restrict, depending on your needs
+			.OnDelete(DeleteBehavior.Cascade);
 	}
-
-	//protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-	//{
-	//    optionsBuilder.UseSqlServer("Data Source=app.db");
-	//}
 }

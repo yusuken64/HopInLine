@@ -26,7 +26,152 @@ namespace HopInLine.Data.Line
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task AddParticipantAsync(string lineID, Participant participant)
+        public async Task AdvanceLineAsync(string lineId)
+        {
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            var line = await _context.Lines
+                .Include(l => l.Participants)
+                .FirstOrDefaultAsync(l => l.Id == lineId);
+
+            if (line == null)
+                return;
+
+            var participant = line.Participants
+                .Where(x => !x.Removed)
+                .OrderBy(x => x.Position)
+                .FirstOrDefault();
+
+            if (participant == null)
+            {
+                return;
+            }
+            if (line.AutoReAdd)
+            {
+                participant.Position = line.NextPosition++;
+                participant.Removed = false;
+            }
+            else
+            {
+                participant.Removed = true;
+            }
+            participant.TurnCount++;
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+
+
+        public async Task ReAddRemovedParticipantAsync(string lineID, string particiantID)
+        {
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            var line = await _context.Lines
+                .Include(l => l.Participants)
+                .FirstOrDefaultAsync(l => l.Id == lineID);
+
+            if (line == null)
+                return;
+
+            var participant = line.Participants
+                .FirstOrDefault(x => x.Id == particiantID);
+
+			if (participant == null || participant.Removed == false)
+			{
+				return;
+			}
+
+			participant.Position = line.NextPosition++;
+            participant.Removed = false;
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+
+
+        public async Task MoveParticipantUpAsync(string lineID, string participantID)
+        {
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            var line = await _context.Lines
+                .Include(l => l.Participants)
+                .FirstOrDefaultAsync(l => l.Id == lineID);
+
+            if (line == null)
+                return;
+
+            var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+            if (participant == null)
+                return;
+
+            var participantAbove = line.Participants
+                .Where(p => !p.Removed && p.Position < participant.Position)
+                .OrderByDescending(p => p.Position)
+                .FirstOrDefault();
+
+            if (participantAbove == null)
+                return; // Already at top
+
+            // Swap positions
+            int temp = participant.Position;
+            participant.Position = participantAbove.Position;
+            participantAbove.Position = temp;
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+
+		public async Task MoveParticipantDownAsync(string lineID, string participantID)
+		{
+			using var tx = await _context.Database.BeginTransactionAsync();
+
+			var line = await _context.Lines
+				.Include(l => l.Participants)
+				.FirstOrDefaultAsync(l => l.Id == lineID);
+
+			if (line == null)
+				return;
+
+			var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+			if (participant == null)
+				return;
+
+			var participantBelow = line.Participants
+				.Where(p => !p.Removed && p.Position > participant.Position)
+				.OrderBy(p => p.Position)
+				.FirstOrDefault();
+
+			if (participantBelow == null)
+				return; // Already at top
+
+			// Swap positions
+			int temp = participant.Position;
+			participant.Position = participantBelow.Position;
+			participantBelow.Position = temp;
+
+			await _context.SaveChangesAsync();
+			await tx.CommitAsync();
+		}
+
+        public async Task RemovedParticipantAsync(string lineID, string participantID)
+        {
+            var line = await _context.Lines
+                .Include(l => l.Participants)
+                .FirstOrDefaultAsync(l => l.Id == lineID);
+
+            if (line == null)
+                return;
+
+            var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+            if (participant == null)
+                return;
+
+            participant.Removed = true;
+
+            await _context.SaveChangesAsync();
+        }
+
+		public async Task AddParticipantAsync(string lineID, Participant participant)
         {
             // Retrieve the line by its ID
             var line = await _context.Lines
@@ -61,17 +206,19 @@ namespace HopInLine.Data.Line
             }
         }
 
-        public async Task DeleteParticipantAsync(string lineID, string instanceId)
-        {
-            var participant = await _context.Participants.FirstOrDefaultAsync(x => x.Id == instanceId);
-            if (participant != null)
-            {
-                _context.Participants.Remove(participant);
-                _context.SaveChanges();
-            }
-        }
+		public async Task DeleteParticipantAsync(string lineID, string instanceId)
+		{
+			var participant = await _context.Participants
+				.FirstOrDefaultAsync(p => p.Id == instanceId && p.LineId == lineID);
 
-        public List<Line> GetAllLines()
+			if (participant != null)
+			{
+				_context.Participants.Remove(participant);
+				await _context.SaveChangesAsync();
+			}
+		}
+
+		public List<Line> GetAllLines()
         {
             return _context.Lines.Include(l => l.Participants).ToList();
         }
@@ -82,37 +229,12 @@ namespace HopInLine.Data.Line
                 .Include(l => l.Participants)
                 .ToListAsync(cancellationToken);
         }
-        public async Task<Line> GetLineAsync(string id)
+
+        public async Task<Line?> GetLineAsync(string id)
         {
-            var line = await _context.Lines
+            return await _context.Lines
+                .Include(l => l.Participants)
                 .FirstOrDefaultAsync(l => l.Id == id);
-
-            if (line != null)
-            {
-                await _context.Entry(line)
-                    .Collection(l => l.Participants)
-                    .LoadAsync();
-            }
-
-            if (line != null)
-            {
-                // Separate participants into active and removed lists
-                var activeParticipants = line.Participants
-                    .Where(p => !p.Removed)
-                    .OrderBy(p => p.Position)
-                    .ToList();
-
-                var removedParticipants = line.Participants
-                    .Where(p => p.Removed)
-                    .OrderBy(p => p.Position)
-                    .ToList();
-
-                // Assign the separated lists back to the line
-                line.Participants = activeParticipants;
-                //line.RemovedParticipants = removedParticipants;
-            }
-
-            return line;
         }
 
         public bool LineExists(string id)
@@ -154,9 +276,7 @@ namespace HopInLine.Data.Line
 
             // Retrieve the existing line from the database
             var existingLine = await _context.Lines
-                .AsNoTracking()
                 .Include(l => l.Participants)
-                .Include(l => l.RemovedParticipants)
                 .FirstOrDefaultAsync(l => l.Id == line.Id);
 
             if (existingLine == null)
@@ -198,15 +318,15 @@ namespace HopInLine.Data.Line
             }
 
             // Handle RemovedParticipants
-            var removedParticipantIds = line.RemovedParticipants.Select(p => p.Id).ToList();
+            var removedParticipantIds = line.Participants.Select(p => p.Id).ToList();
             var existingRemovedParticipants = await _context.Participants
                 .Where(p => removedParticipantIds.Contains(p.Id))
                 .AsNoTracking()
                 .ToListAsync();
 
-            for (int i = 0; i < line.RemovedParticipants.Count(); i++)
+            for (int i = 0; i < line.Participants.Count(); i++)
             {
-                var removedParticipant = line.RemovedParticipants.ToList()[i];
+                var removedParticipant = line.Participants.ToList()[i];
                 removedParticipant.Position = i;
                 removedParticipant.Removed = true;
 
@@ -227,5 +347,5 @@ namespace HopInLine.Data.Line
             // Save changes to the database
             await _context.SaveChangesAsync();
         }
-    }
+	}
 }

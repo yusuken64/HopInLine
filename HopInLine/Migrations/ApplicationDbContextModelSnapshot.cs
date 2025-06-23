@@ -48,6 +48,9 @@ namespace HopInLine.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("NextPosition")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Lines");

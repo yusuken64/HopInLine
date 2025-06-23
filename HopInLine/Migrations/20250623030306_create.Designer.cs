@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HopInLine.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250620092213_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250623030306_create")]
+    partial class create
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -50,6 +50,9 @@ namespace HopInLine.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NextPosition")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

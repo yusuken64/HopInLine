@@ -38,54 +38,38 @@ else
 				{
 					<div>Time left to auto-advance: @timeLeft</div>
 				}
-				@for (int i = 0; i < line.Participants.Count; i++)
+				@foreach (var participant in line.Participants.OrderBy(x => x.Position))
 				{
-					var participant = line.Participants[i];
-					if (participant != null)
-					{
-						<ParticipantCard Name="@participant.Name"
-						 Description="@participant.Description"
-						 Id="@participant.Id"
-						 BackgroundColor="@participant.Color"
-						 TurnCount="@participant.TurnCount"
-						 OnMoveUp="@(() => MoveParticipantUp(participant))"
-						 OnMoveDown="@(() => MoveParticipantDown(participant))"
-						 OnRemove="@(() => RemoveParticipant(participant))" />
-					}
-					else
-					{
-						Console.WriteLine($"Participant at index {i} is null.");
-					}
+					<ParticipantCard Name="@participant.Name"
+					Description="@participant.Description"
+					Id="@participant.Id"
+					BackgroundColor="@participant.Color"
+					TurnCount="@participant.TurnCount"
+					OnMoveUp="@(() => MoveParticipantUp(participant))"
+					OnMoveDown="@(() => MoveParticipantDown(participant))"
+					OnRemove="@(() => RemoveParticipant(participant))" />
 				}
 			}
 		</div>
 
 		<h5>Removed Participants History</h5>
-		@* @if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+		@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
 		{
 			<p>Removed participants show up here.</p>
 		}
 		else
 		{
-			@for (int i = 0; i < line.RemovedParticipants.Count; i++)
+			@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
 			{
-				var participant = line.RemovedParticipants[i];
-				if (participant != null)
-				{
-					<RemovedParticipantCard Name="@participant.Name"
-							Description="@participant.Description"
-							Id="@participant.Id"
-							BackgroundColor="@participant.Color"
-							TurnCount="@participant.TurnCount"
-							OnReAdd="@(() => ReAddRemovedParticipant(participant))"
-							OnDelete="@(() => DeleteRemovedParticipant(participant))" />
-				}
-				else
-				{
-					Console.WriteLine($"Participant at index {i} is null.");
-				}
+				<RemovedParticipantCard Name="@participant.Name"
+					Description="@participant.Description"
+					Id="@participant.Id"
+					BackgroundColor="@participant.Color"
+					TurnCount="@participant.TurnCount"
+					OnReAdd="@(() => ReAddRemovedParticipant(participant))"
+					OnDelete="@(() => DeleteRemovedParticipant(participant))" />		
 			}
-		} *@
+		}
 	</div>
 
 	<div class="toolbar">
@@ -142,7 +126,7 @@ else
 	[Parameter]
 	public string lineId { get; set; }
 
-	private Line? line;
+	private LineDto? line;
 	private HubConnection hubConnection;
 	private string timeLeft;
 	private System.Timers.Timer timer;
@@ -152,7 +136,8 @@ else
 	protected override async Task OnInitializedAsync()
 	{
 		OverlayService.ShowOverlay();
-		line = await lineService.GetLineByIdAsync(lineId);
+		var lineData = await lineService.GetLineByIdAsync(lineId);
+		line = LineDto.FromLine(lineData);
 
 		if (line == null) 
 		{
@@ -175,7 +160,7 @@ else
 
 
 
-		hubConnection.On<Line, uint>("UpdateLine", (newLine, updateId) =>
+		hubConnection.On<LineDto, uint>("UpdateLine", (newLine, updateId) =>
 		{
 			if (updateId >= updatedId)
 			{
@@ -241,7 +226,7 @@ else
 		OverlayService.HideOverlay();
 	}
 
-	private async Task MoveParticipantUp(Participant participant)
+	private async Task MoveParticipantUp(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
 		var instanceId = participant.Id;
@@ -249,7 +234,7 @@ else
 		OverlayService.HideOverlay();
 	}
 
-	private async Task MoveParticipantDown(Participant participant)
+	private async Task MoveParticipantDown(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
 		var instanceId = participant.Id;
@@ -257,7 +242,7 @@ else
 		OverlayService.HideOverlay();
 	}
 
-	private async Task RemoveParticipant(Participant participant)
+	private async Task RemoveParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
 		var instanceId = participant.Id;
@@ -265,7 +250,7 @@ else
 		OverlayService.HideOverlay();
 	}
 
-	private async Task ReAddRemovedParticipant(Participant participant)
+	private async Task ReAddRemovedParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
 		var instanceId = participant.Id;
@@ -273,7 +258,7 @@ else
 		OverlayService.HideOverlay();
 	}
 
-	private async Task DeleteRemovedParticipant(Participant participant)
+	private async Task DeleteRemovedParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
 		var instanceId = participant.Id;

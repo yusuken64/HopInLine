@@ -9,7 +9,6 @@
 		public int TurnCount { get; set; }
 		public int Position { get; set; }
 		public bool Removed { get; set; } = false;
-
 		public string LineId { get; set; }  // foreign key to Line
 		public Line Line { get; set; }      // navigation property
 	}
