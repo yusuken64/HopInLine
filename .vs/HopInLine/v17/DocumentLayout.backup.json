@@ -7,16 +7,28 @@
       "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\sqllinerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\linehub.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\linehub.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\lineservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\lineservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\lineadvancementtask.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\lineadvancementtask.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\pages\\line\\viewline.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\pages\\line\\viewline.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\inmemorylinerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\inmemorylinerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\linehub.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\linehub.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\lineadvancementservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\lineadvancementservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\lineupdatednotifier.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|solutionrelative:hopinline\\data\\line\\lineupdatednotifier.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B5D4E5D2-D697-45BA-8660-71DDE4F5B2E5}|HopInLine\\HopInLine.csproj|c:\\users\\yusuk\\documents\\github\\hopinline\\hopinline\\data\\line\\line.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -30,34 +42,19 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
               "DocumentIndex": 4,
-              "Title": "Line.cs",
-              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
-              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\Line.cs",
-              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
-              "RelativeToolTip": "HopInLine\\Data\\Line\\Line.cs",
-              "ViewState": "AgIAAB0AAAAAAAAAAIA8wB8AAAAiAAAAAAAAAA==",
+              "Title": "LineHub.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineHub.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineHub.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineHub.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineHub.cs",
+              "ViewState": "AgIAAFYAAAAAAAAAAAA6wGgAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-22T08:08:08.499Z",
-              "IsPinned": true,
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ViewLine.razor",
-              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Pages\\Line\\ViewLine.razor",
-              "RelativeDocumentMoniker": "HopInLine\\Pages\\Line\\ViewLine.razor",
-              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Pages\\Line\\ViewLine.razor",
-              "RelativeToolTip": "HopInLine\\Pages\\Line\\ViewLine.razor",
-              "ViewState": "AgIAAPkAAAAAAAAAAAAvwOwAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-06-23T04:01:56.485Z",
-              "IsPinned": true,
+              "WhenOpened": "2025-06-24T07:03:21.938Z",
               "EditorCaption": ""
             },
             {
@@ -68,35 +65,87 @@
               "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\SQLLineRepository.cs",
               "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\SQLLineRepository.cs",
               "RelativeToolTip": "HopInLine\\Data\\Line\\SQLLineRepository.cs",
-              "ViewState": "AgIAAKYAAAAAAAAAAAAvwNoAAAADAAAAAAAAAA==",
+              "ViewState": "AgIAABsBAAAAAAAAAAAqwDQBAABsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T06:12:28.816Z",
+              "WhenOpened": "2025-06-24T06:56:18.646Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LineAdvancementTask.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineAdvancementTask.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineAdvancementTask.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineAdvancementTask.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineAdvancementTask.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAAAAACEAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-24T06:51:48.466Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Line.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\Line.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\Line.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\Line.cs",
+              "ViewState": "AgIAACUAAAAAAAAAAIA+wDEAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-24T06:51:46.645Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "LineUpdatedNotifier.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineUpdatedNotifier.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineUpdatedNotifier.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineUpdatedNotifier.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineUpdatedNotifier.cs",
+              "ViewState": "AgIAAB0AAAAAAAAAAAAqwCkAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-24T06:48:48.238Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "LineHub.cs",
-              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineHub.cs",
-              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineHub.cs",
-              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineHub.cs",
-              "RelativeToolTip": "HopInLine\\Data\\Line\\LineHub.cs",
-              "ViewState": "AgIAADcAAAAAAAAAAADwv0UAAAArAAAAAAAAAA==",
+              "Title": "LineService.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineService.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineService.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineService.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineService.cs",
+              "ViewState": "AgIAAO4AAAAAAAAAAAAmwPIAAAAdAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T06:12:01.48Z",
+              "WhenOpened": "2025-06-24T06:47:53.421Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "LineAdvancementService.cs",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineAdvancementService.cs",
+              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\LineAdvancementService.cs",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\LineAdvancementService.cs",
+              "RelativeToolTip": "HopInLine\\Data\\Line\\LineAdvancementService.cs",
+              "ViewState": "AgIAAEAAAAAAAAAAAAAuwEMAAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-24T06:40:45.39Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "InMemoryLineRepository.cs",
-              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\InMemoryLineRepository.cs",
-              "RelativeDocumentMoniker": "HopInLine\\Data\\Line\\InMemoryLineRepository.cs",
-              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Data\\Line\\InMemoryLineRepository.cs",
-              "RelativeToolTip": "HopInLine\\Data\\Line\\InMemoryLineRepository.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAQAAAAqAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T05:56:21.345Z",
+              "Title": "ViewLine.razor",
+              "DocumentMoniker": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Pages\\Line\\ViewLine.razor",
+              "RelativeDocumentMoniker": "HopInLine\\Pages\\Line\\ViewLine.razor",
+              "ToolTip": "C:\\Users\\yusuk\\Documents\\GitHub\\HopInLine\\HopInLine\\Pages\\Line\\ViewLine.razor",
+              "RelativeToolTip": "HopInLine\\Pages\\Line\\ViewLine.razor",
+              "ViewState": "AgIAANcAAAAAAAAAAAAWwFUBAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-06-24T05:18:07.676Z",
               "EditorCaption": ""
             }
           ]

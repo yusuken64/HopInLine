@@ -1,48 +1,60 @@
 ﻿@page "/edit-line/{lineId}"
 @using HopInLine.Data.Line;
+@if (line == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h3>Edit Line - @line.Name [@LineId]</h3>
+    
+    <div>
+        <p>To edit the line, please update the following details:</p>
+    </div>
+    
+    <div class="form-group">
+        <label for="lineName">Line Name:</label>
+        <input type="text" id="lineName" @bind="line.Name" class="form-control" placeholder="Enter line name" />
+    </div>
+    
+    <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" @bind="line.Description" class="form-control" placeholder="Enter description"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="autoAdvanceLine">Timer Advance:</label>
+        <input type="checkbox" id="autoAdvanceLine" @bind="line.AutoAdvanceLine" class="form-check-input" />
+    </div>
 
-<h3>Edit Line - [@LineId]</h3>
+    <div class="form-group">
+        <label for="autoAdvanceLine">Auto Start Timer after Advancing:</label>
+        <input type="checkbox" id="autoRestartTimerOnAdvance" @bind="line.AutoRestartTimerOnAdvance" class="form-check-input" />
+    </div>
 
-<div>
-    <p>To edit the line, please update the following details:</p>
-</div>
 
-<div class="form-group">
-    <label for="lineName">Line Name:</label>
-    <input type="text" id="lineName" @bind="line.Name" class="form-control" placeholder="Enter line name" />
-</div>
+    <div class="form-group">
+        <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
+        <input type="number" 
+               id="autoAdvanceMinutes" 
+               @bind="autoAdvanceMinutes"
+               class="form-control"
+               disabled="@(!line.AutoAdvanceLine)"
+               min="1" 
+               max="999" 
+               step="1" />
+    </div>
+    
+    <div class="form-group">
+        <label for="autoReAdd">Auto Re-Add:</label>
+        <input type="checkbox" id="autoReAdd" @bind="line.AutoReAdd" class="form-check-input" />
+    </div>
+    
+    <button @onclick="SaveChanges" class="btn btn-primary">Save</button>
+    <button @onclick="Cancel" class="btn btn-secondary">Cancel</button>
+    <button @onclick="Delete" class="btn btn-danger">Delete</button>
 
-<div class="form-group">
-    <label for="description">Description:</label>
-    <textarea id="description" @bind="line.Description" class="form-control" placeholder="Enter description"></textarea>
-</div>
-
-<div class="form-group">
-    <label for="autoAdvanceLine">Auto-Advance Line:</label>
-    <input type="checkbox" id="autoAdvanceLine" @bind="line.AutoAdvanceLine" class="form-check-input" />
-</div>
-
-<div class="form-group">
-    <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
-    <input type="number" 
-           id="autoAdvanceMinutes" 
-           @bind="autoAdvanceMinutes"
-           class="form-control" 
-           disabled="@(line.AutoAdvanceLine ? false : true)" 
-           min="1" 
-           max="999" 
-           step="1" />
-</div>
-
-<div class="form-group">
-    <label for="autoReAdd">Auto Re-Add:</label>
-    <input type="checkbox" id="autoReAdd" @bind="line.AutoReAdd" class="form-check-input" />
-</div>
-
-<button @onclick="Delete" class="btn btn-success">Delete</button>
-<button @onclick="SaveChanges" class="btn btn-success">Save</button>
-<button @onclick="Cancel" class="btn btn-danger">Cancel</button>
-
+}
 @code {
     [Inject]
     private LineService LineService { get; set; } = null!;
@@ -57,9 +69,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load the line details based on the LineId parameter
-        line = await LineService.GetLineByIdAsync(LineId);
-        autoAdvanceMinutes = (int)line.AutoAdvanceInterval.TotalMinutes;
+        try
+        {
+            line = await LineService.GetLineByIdAsync(LineId);
+
+            if (line == null)
+            {
+                NavigationManager.NavigateTo("/not-found");
+                return;
+            }
+
+            autoAdvanceMinutes = (int)line.AutoAdvanceInterval.TotalMinutes;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Error loading line: {ex.Message}");
+            NavigationManager.NavigateTo("/error");
+        }
     }
 
     private async Task SaveChanges()
@@ -81,7 +107,7 @@
     private async Task Delete()
     {
         await LineService.DeleteLineAsync(LineId);
-        NavigationManager.NavigateTo($"/view-line/{LineId}");
+        NavigationManager.NavigateTo($"/");
     }
 
     private void Cancel()

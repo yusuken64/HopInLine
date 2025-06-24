@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 
 namespace HopInLine.Data.Line
 {
-	public class LineAdvancementService : BackgroundService
-	{
+    public class LineAdvancementService : BackgroundService
+    {
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly ConcurrentDictionary<string, LineAdvancementTask> _tasks = new();
 
@@ -22,35 +22,54 @@ namespace HopInLine.Data.Line
         public LineAdvancementService(IServiceScopeFactory serviceScopeFactory)
         {
             _serviceScopeFactory = serviceScopeFactory;
+            LineUpdated += async (sender, args) =>
+            {
+                StartLineAdvancement(args.line.Id);
+            };
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			await StartAllLinesAsync(stoppingToken);
-			// Keep the service alive indefinitely
-			await Task.Delay(Timeout.Infinite, stoppingToken);
+        {
+            await StartAllLinesAsync(stoppingToken);
+            // Keep the service alive indefinitely
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+
+        public override async Task StopAsync(CancellationToken stoppingToken)
+        {
+            StopAllLines();
+            await base.StopAsync(stoppingToken);
+        }
+
+        public void StartLineAdvancement(string lineId)
+        {
+            if (_tasks.TryGetValue(lineId, out var existingTask))
+            {
+                existingTask.Stop();
+                _tasks.Remove(lineId, out _);
+            }
+
+            var task = new LineAdvancementTask(lineId, _serviceScopeFactory);
+            _tasks[lineId] = task;
+            task.OnStopped += (id) => _tasks.Remove(id, out _);
+            task.Start();
 		}
 
-		public override async Task StopAsync(CancellationToken stoppingToken)
+		internal void ResumeLineAdvancement(string lineId)
 		{
-			StopAllLines();
-			await base.StopAsync(stoppingToken);
-        }
-        public void StartLineAdvancement(Line line)
-        {
-            if (!_tasks.ContainsKey(line.Id))
-            {
-                var task = new LineAdvancementTask(line, _serviceScopeFactory);
-                _tasks[line.Id] = task;
-                task.Start();
-            }
-            else
-            {
-                throw new Exception("line already started");
-            }
-        }
+			if (_tasks.TryGetValue(lineId, out var existingTask))
+			{
+				existingTask.Stop();
+				_tasks.Remove(lineId, out _);
+			}
 
-        public void StopLineAdvancement(string lineId)
+			var task = new LineAdvancementTask(lineId, _serviceScopeFactory);
+			_tasks[lineId] = task;
+			task.OnStopped += (id) => _tasks.Remove(id, out _);
+			task.Start();
+		}
+
+		public void StopLineAdvancement(string lineId)
         {
             if (_tasks.TryGetValue(lineId, out var task))
             {
@@ -65,20 +84,26 @@ namespace HopInLine.Data.Line
             {
                 var lineRepository = scope.ServiceProvider.GetRequiredService<ILineRepository>();
                 var lines = await lineRepository.GetAllLinesAsync(cancellationToken);
-                foreach (var line in lines)
+                foreach (var line in lines.Where(x => x.AutoAdvanceLine))
                 {
-                    StartLineAdvancement(line);
+                    try
+                    {
+                        StartLineAdvancement(line.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log or handle specific line start failures
+                    }
                 }
             }
         }
 
         public void StopAllLines()
         {
-            foreach (var task in _tasks.Values)
+            foreach (var key in _tasks.Keys)
             {
-                task.Stop();
+                StopLineAdvancement(key);
             }
-            _tasks.Clear();
         }
-    }
+	}
 }

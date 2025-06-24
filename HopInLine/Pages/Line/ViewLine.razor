@@ -17,11 +17,18 @@ else
 		<div style="display: flex; justify-content: space-between; align-items: center;">
 			<h4 style="margin: 0;">@line.Name  - [@line.Id] </h4>
 			<div>
-				@if (line.AutoAdvanceLine &&
-					line.AutoAdvanceInterval.TotalMinutes >= 1)
+				@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
 				{
-					<button @onclick="StartTimer">Start Timer</button>
-					<button @onclick="StopTimer">Stop Timer</button>
+					@if (line.IsPaused)
+					{
+						<button @onclick="ResumeTimer">Resume Timer</button>
+					}
+					else
+					{
+						<button @onclick="PauseTimer">Pause Timer</button>
+					}
+
+					<button @onclick="RestartTimer">Restart Timer</button>
 				}
 				<button @onclick="Edit">Edit</button>
 			</div>
@@ -36,7 +43,17 @@ else
 			{
 				@if (line.AutoAdvanceLine)
 				{
-					<div>Time left to auto-advance: @timeLeft</div>
+					<div>
+						<span>Time left to auto-advance: @timeLeft</span>
+						@if (line.IsPaused)
+						{
+							<span style="color: orange; margin-left: 10px;">⏸️ Paused</span>
+						}
+						else
+						{
+							<span style="color: green; margin-left: 10px;">▶️ Playing</span>
+						}
+					</div>
 				}
 				@foreach (var participant in line.Participants.OrderBy(x => x.Position))
 				{
@@ -158,8 +175,6 @@ else
 			.WithAutomaticReconnect()
 			.Build();
 
-
-
 		hubConnection.On<LineDto, uint>("UpdateLine", (newLine, updateId) =>
 		{
 			if (updateId >= updatedId)
@@ -194,11 +209,29 @@ else
 
 	private void UpdateTimeLeft()
 	{
-		var remainingTime = line.CountDownStart.Add(line.AutoAdvanceInterval) - DateTime.UtcNow;
-		timeLeft = remainingTime > TimeSpan.Zero ? remainingTime.ToString(@"mm\:ss") : "00:00";
-		if (remainingTime <= TimeSpan.Zero)
+		if (line.IsPaused && line.UnpauseRemaining.HasValue)
 		{
-			timeLeft = "Auto-advance happening now...";
+			// Show the remaining time stored during pause
+			timeLeft = line.UnpauseRemaining.Value > TimeSpan.Zero
+				? line.UnpauseRemaining.Value.ToString(@"mm\:ss")
+				: "00:00";
+		}
+		else if (line.IsPaused)
+		{
+			//don't update the ui
+		}
+		else
+		{
+			var remainingTime = line.CountDownStart.Add(line.AutoAdvanceInterval) - DateTime.UtcNow;
+
+			if (remainingTime <= TimeSpan.Zero)
+			{
+				timeLeft = "Auto-advance happening now...";
+			}
+			else
+			{
+				timeLeft = remainingTime.ToString(@"mm\:ss");
+			}
 		}
 	}
 
@@ -294,5 +327,26 @@ else
 	private async Task Edit()
 	{
 		NavigationManager.NavigateTo($"/edit-line/{lineId}");
+	}
+
+	private async Task ResumeTimer(MouseEventArgs args)
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("ResumeTimer", line.Id);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task PauseTimer(MouseEventArgs args)
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("PauseTimer", line.Id);
+		OverlayService.HideOverlay();
+	}
+
+	private async Task RestartTimer(MouseEventArgs args)
+	{
+		OverlayService.ShowOverlay();
+		await hubConnection.SendAsync("RestartTimer", line.Id);
+		OverlayService.HideOverlay();
 	}
 }

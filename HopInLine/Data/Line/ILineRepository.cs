@@ -18,5 +18,8 @@
 		Task MoveParticipantUpAsync(string lineID, string participantID);
 		Task MoveParticipantDownAsync(string lineID, string participantID);
 		Task RemovedParticipantAsync(string lineID, string participantID);
+		Task ResumeTimerAsync(string lineId);
+		Task PauseTimerAsync(string lineId);
+		Task RestartTimerAsync(string lineId);
 	}
 }

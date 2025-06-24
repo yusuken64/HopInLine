@@ -8,10 +8,17 @@ namespace HopInLine.Data.Line
 		public string Name { get; set; }
 		public string? Description { get; set; }
 		public DateTime LastUpdated { get; set; }
+		
+		//Timer Related
 		public bool AutoAdvanceLine { get; set; }
 		public TimeSpan AutoAdvanceInterval { get; set; }
 		public DateTime CountDownStart { get; set; }
+		public bool IsPaused {get;set;}
 		public bool AutoReAdd { get; set; }
+		public bool AutoRestartTimerOnAdvance { get; set; } = true;
+		public TimeSpan? UnpauseRemaining { get; internal set; }
+
+		//Participants
 		public List<Participant> Participants { get; set; } = new();
 		public int NextPosition { get; set; } = 1;
 	}
@@ -28,6 +35,9 @@ namespace HopInLine.Data.Line
 		public TimeSpan AutoAdvanceInterval { get; set; }
 		public DateTime CountDownStart { get; set; }
 		public bool AutoReAdd { get; set; }
+		public bool IsPaused { get; set; }
+		public bool AutoRestartTimerOnAdvance { get; set; } = true;
+		public TimeSpan? UnpauseRemaining { get; internal set; }
 
 		internal static LineDto FromLine(Line line)
 		{
@@ -39,6 +49,9 @@ namespace HopInLine.Data.Line
 				AutoAdvanceLine = line.AutoAdvanceLine,
 				CountDownStart = line.CountDownStart,
 				AutoReAdd = line.AutoReAdd,
+				IsPaused = line.IsPaused,
+				AutoRestartTimerOnAdvance = line.AutoRestartTimerOnAdvance,
+				UnpauseRemaining = line.UnpauseRemaining,
 				Description = line.Description,
 				LastUpdated = DateTime.Now,
 				Participants = line.Participants

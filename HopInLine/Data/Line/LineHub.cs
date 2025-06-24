@@ -83,5 +83,26 @@ namespace HopInLine.Data.Line
 			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
 			await lineService.StopTimerAsync(lineId);
 		}
+
+		public async Task ResumeTimer(string lineId)
+		{
+			using var scope = serviceScopeFactory.CreateAsyncScope();
+			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
+			await lineService.ResumeTimerAsync(lineId);
+		}
+
+		public async Task PauseTimer(string lineId)
+		{
+			using var scope = serviceScopeFactory.CreateAsyncScope();
+			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
+			await lineService.PauseTimerAsync(lineId);
+		}
+
+		public async Task RestartTimer(string lineId)
+		{
+			using var scope = serviceScopeFactory.CreateAsyncScope();
+			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
+			await lineService.RestartTimerAsync(lineId);
+		}
 	}
 }

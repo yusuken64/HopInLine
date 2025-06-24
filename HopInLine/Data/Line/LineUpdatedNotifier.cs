@@ -28,12 +28,17 @@ namespace HopInLine.Data.Line
 
 		internal void StartLineAdvancement(Line line)
 		{
-			//throw new NotImplementedException();
+			advancement.StartLineAdvancement(line.Id);
+		}
+
+		internal void ResumeLineAdvancement(string lineId)
+		{
+			advancement.ResumeLineAdvancement(lineId);
 		}
 
 		internal void StopLineAdvancement(string id)
 		{
-			//throw new NotImplementedException();
+			advancement.StopLineAdvancement(id);
 		}
 	}
 }

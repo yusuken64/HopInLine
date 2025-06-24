@@ -93,6 +93,11 @@ namespace HopInLine.Data.Line
 			throw new NotImplementedException();
 		}
 
+		public Task PauseTimerAsync(string lineId)
+		{
+			throw new NotImplementedException();
+		}
+
 		public Task ReAddRemovedParticipantAsync(string lineID, string particiantID)
 		{
 			throw new NotImplementedException();
@@ -116,7 +121,17 @@ namespace HopInLine.Data.Line
             await Task.Run(() => RemoveLine(lineId), cancellationToken);
         }
 
-        public async Task UpdateLineAsync(Line line)
+		public Task RestartTimerAsync(string lineId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task ResumeTimerAsync(string lineId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public async Task UpdateLineAsync(Line line)
         {
             if (_lines.ContainsKey(line.Id))
             {

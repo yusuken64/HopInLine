@@ -5,46 +5,57 @@ namespace HopInLine.Data.Line
 {
     public class LineAdvancementTask
     {
-        private readonly Line _line;
+        public event Action<string> OnStopped;
+        private readonly string _lineID;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private CancellationTokenSource _cancellationTokenSource;
+        private bool _isRunning;
 
-        public LineAdvancementTask(Line line, IServiceScopeFactory serviceScopeFactory)
+        public LineAdvancementTask(string lineID, IServiceScopeFactory serviceScopeFactory)
         {
-            _line = line;
+            _lineID = lineID;
             _serviceScopeFactory = serviceScopeFactory;
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
         public void Start()
         {
+            if (_isRunning) return;
+            _isRunning = true;
             Task.Run(async () => await RunAsync(_cancellationTokenSource.Token));
         }
 
         public void Stop()
         {
+            if (!_isRunning) return;
+            _isRunning = false;
             _cancellationTokenSource.Cancel();
+            OnStopped?.Invoke(_lineID);
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var elapsedTime = DateTime.UtcNow - _line.CountDownStart;
-                if (elapsedTime >= _line.AutoAdvanceInterval)
+                using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    using (var scope = _serviceScopeFactory.CreateScope())
+                    var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
+                    var line = await lineService.GetLineByIdAsync(_lineID);
+
+                    var elapsedTime = DateTime.UtcNow - line.CountDownStart;
+                    if (elapsedTime >= line.AutoAdvanceInterval)
                     {
-                        Stop();
-                        var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
-                        await lineService.AdvanceLineAsync(_line.Id);
-                        _line.CountDownStart = DateTime.UtcNow;
+                        line.CountDownStart = DateTime.UtcNow;
+                        line.IsPaused = !line.AutoRestartTimerOnAdvance;
+                        await lineService.UpdateLineAsync(line);
+                        await lineService.AdvanceLineAsync(_lineID);
+
                     }
-                }
-                else
-                {
-                    TimeSpan delay = _line.AutoAdvanceInterval - elapsedTime;
-                    await Task.Delay(delay, cancellationToken);
+                    else
+                    {
+                        TimeSpan delay = line.AutoAdvanceInterval - elapsedTime;
+                        await Task.Delay(delay, cancellationToken);
+                    }
                 }
             }
         }

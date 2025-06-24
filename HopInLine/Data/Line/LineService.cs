@@ -237,5 +237,28 @@ namespace HopInLine.Data.Line
                 RemovedParticipants = line.Participants.Where(x => x.Removed).ToList()
             };
         }
+
+		internal async Task ResumeTimerAsync(string lineId)
+		{
+			await _lineRepository.ResumeTimerAsync(lineId);
+			lineUpdatedNotifier.ResumeLineAdvancement(lineId);
+			var line = await GetLineByIdAsync(lineId);
+			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+		}
+
+		internal async Task PauseTimerAsync(string lineId)
+		{
+			await _lineRepository.PauseTimerAsync(lineId);
+			lineUpdatedNotifier.StopLineAdvancement(lineId);
+			var line = await GetLineByIdAsync(lineId);
+			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+		}
+
+		internal async Task RestartTimerAsync(string lineId)
+		{
+			await _lineRepository.RestartTimerAsync(lineId);
+			var line = await GetLineByIdAsync(lineId);
+			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+		}
 	}
 }
