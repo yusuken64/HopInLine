@@ -39,6 +39,8 @@ namespace HopInLine.Data.Line
 
             if (string.IsNullOrWhiteSpace(newId)) { return null; }
 
+            if (autoAdvanceInterval < TimeSpan.FromMinutes(1)) { autoAdvanceInterval = TimeSpan.FromMinutes(1); }
+
             var newLine = new Line
             {
                 Id = newId,

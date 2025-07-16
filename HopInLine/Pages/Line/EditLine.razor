@@ -79,7 +79,14 @@ else
                 return;
             }
 
-            autoAdvanceMinutes = (int)line.AutoAdvanceInterval.TotalMinutes;
+            if (line.AutoAdvanceInterval == null)
+            {
+                autoAdvanceMinutes = 1;
+            }
+            else
+            {
+                autoAdvanceMinutes = Math.Max(1, (int)line.AutoAdvanceInterval.TotalMinutes);
+            }
         }
         catch (Exception ex)
         {
@@ -90,7 +97,7 @@ else
 
     private async Task SaveChanges()
     {
-        line.AutoAdvanceInterval = TimeSpan.FromMinutes(autoAdvanceMinutes);
+        line.AutoAdvanceInterval = TimeSpan.FromMinutes(autoAdvanceMinutes < 1 ? 1: autoAdvanceMinutes);
         var updatedLine = await LineService.UpdateLineAsync(line);
 
         if (updatedLine == null)
