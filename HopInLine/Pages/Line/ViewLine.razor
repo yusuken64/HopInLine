@@ -1,39 +1,47 @@
-﻿@page "/view-line/{lineId}"
+﻿@page "/view-line/{LineId}"
+@page "/manage/{LineId}/{ManageToken}"
 @using HopInLine.Data.Line;
-@using Microsoft.AspNetCore.SignalR.Client;
 @implements IAsyncDisposable
+
 @if (line == null)
 {
 	if (string.IsNullOrEmpty(errorMessage))
 	{
 		<p>Loading...</p>
-	} else
+	}
+	else
 	{
 		<p>@errorMessage</p>
+		<a href="/">Go to home page</a>
 	}
 }
 else
 {
 	<div style="padding-bottom: 180px;">
-		<div style="display: flex; justify-content: space-between; align-items: center;">
-			<h4 style="margin: 0;">@line.Name  - [@line.Id] </h4>
-			<div>
-				@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
-				{
-					@if (line.IsPaused)
-					{
-						<button @onclick="ResumeTimer">Resume Timer</button>
-					}
-					else
-					{
-						<button @onclick="PauseTimer">Pause Timer</button>
-					}
+		<h1 style="margin: 0;">@line.Name</h1>
 
-					<button @onclick="RestartTimer">Restart Timer</button>
-				}
-				<button @onclick="Edit">Edit</button>
+		@if (canManage)
+		{
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<div>
+					@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
+					{
+						@if (line.IsPaused)
+						{
+							<button @onclick="ResumeTimer" disabled="@busy">Resume Timer</button>
+						}
+						else
+						{
+							<button @onclick="PauseTimer" disabled="@busy">Pause Timer</button>
+						}
+
+						<button @onclick="RestartTimer" disabled="@busy">Restart Timer</button>
+					}
+					<button @onclick="Edit" disabled="@busy">Edit</button>
+					<button @onclick="DeleteLineAsync" disabled="@busy" style="color: red;">Delete Line</button>
+				</div>
 			</div>
-		</div>
+		}
 
 		<div class="participants-list">
 			@if (line.Participants == null || line.Participants.Count == 0)
@@ -45,7 +53,7 @@ else
 				@if (line.AutoAdvanceLine)
 				{
 					<div>
-						<span>Time left to auto-advance: @timeLeft</span>
+						<span>Time left to auto-advance: <span id="countdown-@line.Id" aria-live="polite">@GetTimeLeftDisplay()</span></span>
 						@if (line.IsPaused)
 						{
 							<span style="color: orange; margin-left: 10px;">⏸️ Paused</span>
@@ -58,19 +66,33 @@ else
 				}
 				@foreach (var participant in line.Participants.OrderBy(x => x.Position))
 				{
-					<ParticipantCard Name="@participant.Name"
-					Description="@participant.Description"
-					Id="@participant.Id"
-					BackgroundColor="@participant.Color"
-					TurnCount="@participant.TurnCount"
-					OnMoveUp="@(() => MoveParticipantUp(participant))"
-					OnMoveDown="@(() => MoveParticipantDown(participant))"
-					OnRemove="@(() => RemoveParticipant(participant))" />
+					@if (canManage)
+					{
+						<ParticipantCard Name="@participant.Name"
+						Description="@participant.Description"
+						Id="@participant.Id"
+						BackgroundColor="@participant.Color"
+						TurnCount="@participant.TurnCount"
+						OnMoveUp="@(async () => await MoveParticipantUp(participant))"
+						OnMoveDown="@(async () => await MoveParticipantDown(participant))"
+						OnRemove="@(async () => await RemoveParticipant(participant))" />
+					}
+					else
+					{
+						<ParticipantCard Name="@participant.Name"
+						Description="@participant.Description"
+						Id="@participant.Id"
+						BackgroundColor="@participant.Color"
+						TurnCount="@participant.TurnCount"
+						OnMoveUp="@(async () => await Task.CompletedTask)"
+						OnMoveDown="@(async () => await Task.CompletedTask)"
+						OnRemove="@(async () => await Task.CompletedTask)" />
+					}
 				}
 			}
 		</div>
 
-		<h5>Removed Participants History</h5>
+		<h2>Removed Participants History</h2>
 		@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
 		{
 			<p>Removed participants show up here.</p>
@@ -79,23 +101,39 @@ else
 		{
 			@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
 			{
-				<RemovedParticipantCard Name="@participant.Name"
-					Description="@participant.Description"
-					Id="@participant.Id"
-					BackgroundColor="@participant.Color"
-					TurnCount="@participant.TurnCount"
-					OnReAdd="@(() => ReAddRemovedParticipant(participant))"
-					OnDelete="@(() => DeleteRemovedParticipant(participant))" />		
+				@if (canManage)
+				{
+					<RemovedParticipantCard Name="@participant.Name"
+						Description="@participant.Description"
+						Id="@participant.Id"
+						BackgroundColor="@participant.Color"
+						TurnCount="@participant.TurnCount"
+						OnReAdd="@(async () => await ReAddRemovedParticipant(participant))"
+						OnDelete="@(async () => await DeleteRemovedParticipant(participant))" />
+				}
+				else
+				{
+					<RemovedParticipantCard Name="@participant.Name"
+						Description="@participant.Description"
+						Id="@participant.Id"
+						BackgroundColor="@participant.Color"
+						TurnCount="@participant.TurnCount"
+						OnReAdd="@(async () => await Task.CompletedTask)"
+						OnDelete="@(async () => await Task.CompletedTask)" />
+				}
 			}
 		}
 	</div>
 
 	<div class="toolbar">
 		<div class="toolbar-input">
-			<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" />
-			<button @onclick="AddParticipant" class="btn btn-success">Add</button>
+			<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" disabled="@busy" />
+			<button @onclick="AddParticipant" class="btn btn-success" disabled="@busy">Add</button>
 		</div>
-		<button @onclick="AdvanceLine" class="btn btn-warning">Advance</button>
+		@if (canManage)
+		{
+			<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
+		}
 	</div>
 }
 
@@ -131,304 +169,354 @@ else
 </style>
 
 @code {
-	private string newParticipant;
+	private string? newParticipant;
 
 	[Inject]
-	private LineService lineService { get; set; } = null!;
+	private ILineService LineService { get; set; } = null!;
 
 	[Inject]
-	private NavigationManager NavigationManager { get; set; }
+	private ILineChangeNotifier Notifier { get; set; } = null!;
+
 	[Inject]
-	private OverlayService OverlayService { get; set; } = null!;
+	private IJSRuntime JS { get; set; } = null!;
+
+	[Inject]
+	private NavigationManager NavigationManager { get; set; } = null!;
 
 	[Parameter]
-	public string lineId { get; set; }
+	public string LineId { get; set; } = null!;
+
+	[Parameter]
+	public string? ManageToken { get; set; }
 
 	private LineDto? line;
-	private HubConnection hubConnection;
-	private string timeLeft;
-	private System.Timers.Timer timer;
-	private uint updatedId = 0;
-	private string errorMessage = null;
+	private bool canManage;
+	private IDisposable? _subscription;
+	private bool busy;
+	private string? errorMessage;
 
 	protected override async Task OnInitializedAsync()
 	{
-		OverlayService.ShowOverlay();
 		try
 		{
-			var lineData = await lineService.GetLineByIdAsync(lineId);
-			if (lineData is null)
+			// Validate manage token if provided
+			if (!string.IsNullOrEmpty(ManageToken))
 			{
-				errorMessage = "Line not found.";
-				OverlayService.HideOverlay();
-				return;
-			}
-			line = LineDto.FromLine(lineData);
-
-			var isDocker = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker";
-			var hubUri = isDocker
-				? new Uri("http://host.docker.internal:8080/linehub")
-				: NavigationManager.ToAbsoluteUri("/linehub");
-
-			Console.WriteLine($"🔍 HubConnection will use URI: {hubUri}");
-
-			hubConnection = new HubConnectionBuilder()
-				.WithUrl(hubUri)
-				.WithAutomaticReconnect()
-				.Build();
-
-			hubConnection.On<LineDto, uint>("UpdateLine", (newLine, updateId) =>
-			{
-				if (updateId >= updatedId)
-				{
-					updatedId = updateId;
-					line = newLine;
-					InvokeAsync(StateHasChanged);
-				}
-			});
-
-			await hubConnection.StartAsync();
-			await hubConnection.SendAsync("JoinLineGroup", line.Id);
-
-			OverlayService.HideOverlay();
-			StartCountdown();
-		}
-		finally
-		{
-			OverlayService.HideOverlay();
-		}
-	}
-
-	private void StartCountdown()
-	{
-		UpdateTimeLeft();
-		timer = new System.Timers.Timer(1000);
-		timer.Elapsed += (sender, args) =>
-		{
-			InvokeAsync(() =>
-			{
-				UpdateTimeLeft();
-				InvokeAsync(StateHasChanged);
-			});
-		};
-		timer.Start();
-	}
-
-	private void UpdateTimeLeft()
-	{
-		if (line.IsPaused && line.UnpauseRemaining.HasValue)
-		{
-			// Show the remaining time stored during pause
-			timeLeft = line.UnpauseRemaining.Value > TimeSpan.Zero
-				? line.UnpauseRemaining.Value.ToString(@"mm\:ss")
-				: "00:00";
-		}
-		else if (line.IsPaused)
-		{
-			//don't update the ui
-		}
-		else
-		{
-			var remainingTime = line.CountDownStart.Add(line.AutoAdvanceInterval) - DateTime.UtcNow;
-
-			if (remainingTime <= TimeSpan.Zero)
-			{
-				timeLeft = "Auto-advance happening now...";
+				canManage = await LineService.ValidateManageTokenAsync(LineId, ManageToken);
 			}
 			else
 			{
-				timeLeft = remainingTime.ToString(@"mm\:ss");
+				canManage = false;
+			}
+
+			// Load the line
+			var lineData = await LineService.GetLineAsync(LineId);
+			if (lineData is null)
+			{
+				errorMessage = "Line not found.";
+				return;
+			}
+
+			line = lineData;
+
+			// Subscribe to line changes
+			_subscription = Notifier.Subscribe(LineId, OnLineChanged);
+		}
+		catch (Exception ex)
+		{
+			errorMessage = "Error loading line.";
+			Console.WriteLine($"Error in OnInitializedAsync: {ex}");
+		}
+	}
+
+	private async Task OnLineChanged(LineDto dto)
+	{
+		await InvokeAsync(() =>
+		{
+			line = dto;
+			StateHasChanged();
+		});
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (line is not null)
+		{
+			if (line.AutoAdvanceLine && line.NextAdvanceAt.HasValue)
+			{
+				await JS.InvokeVoidAsync("hopInLine.startCountdown", $"countdown-{LineId}", line.NextAdvanceAt.Value.ToString("O"));
+			}
+			else if (line.AutoAdvanceLine)
+			{
+				await JS.InvokeVoidAsync("hopInLine.stopCountdown", $"countdown-{LineId}");
 			}
 		}
+	}
+
+	private string GetTimeLeftDisplay()
+	{
+		if (line is null)
+		{
+			return "Loading...";
+		}
+
+		if (line.IsPaused && line.UnpauseRemaining.HasValue)
+		{
+			return DurationFormat.Humanize(line.UnpauseRemaining.Value);
+		}
+		else if (line.IsPaused)
+		{
+			return DurationFormat.Humanize(TimeSpan.Zero);
+		}
+		else if (line.NextAdvanceAt.HasValue)
+		{
+			var remainingTime = line.NextAdvanceAt.Value - DateTime.UtcNow;
+			if (remainingTime <= TimeSpan.Zero)
+			{
+				return "Auto-advance happening now...";
+			}
+			return DurationFormat.Humanize(remainingTime);
+		}
+
+		return "Loading...";
 	}
 
 	private async Task AddParticipant()
 	{
-		OverlayService.ShowOverlay();
+		if (line is null)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
 			if (!string.IsNullOrWhiteSpace(newParticipant))
 			{
-				await hubConnection.SendAsync("AddParticipant", line.Id, new Participant()
-					{
-						Name = newParticipant,
-						Description = "",
-						Id = ParticipantFactory.NewParticipantID(),
-						Color = ParticipantFactory.GenerateUniqueColor()
-					});
+				await LineService.AddParticipantAsync(LineId, newParticipant);
 				newParticipant = string.Empty;
 			}
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task AdvanceLine()
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			await hubConnection.SendAsync("AdvanceLine", line.Id);
+			await LineService.AdvanceLineAsync(LineId, ManageToken ?? string.Empty);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task MoveParticipantUp(ParticipantDto participant)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			var instanceId = participant.Id;
-			await hubConnection.SendAsync("MoveParticipantUp", line.Id, (object)instanceId);
+			await LineService.MoveParticipantUpAsync(LineId, ManageToken ?? string.Empty, participant.Id);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task MoveParticipantDown(ParticipantDto participant)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			var instanceId = participant.Id;
-			await hubConnection.SendAsync("MoveParticipantDown", line.Id, (object)instanceId);
+			await LineService.MoveParticipantDownAsync(LineId, ManageToken ?? string.Empty, participant.Id);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task RemoveParticipant(ParticipantDto participant)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Remove {participant.Name}?"))
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			var instanceId = participant.Id;
-			await hubConnection.SendAsync("RemoveParticipant", line.Id, (object)instanceId);
+			await LineService.RemoveParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task ReAddRemovedParticipant(ParticipantDto participant)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			var instanceId = participant.Id;
-			await hubConnection.SendAsync("ReAddRemovedParticipant", line.Id, (object)instanceId);
+			await LineService.ReAddRemovedParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task DeleteRemovedParticipant(ParticipantDto participant)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Permanently delete {participant.Name}?"))
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			var instanceId = participant.Id;
-			await hubConnection.SendAsync("DeleteRemovedParticipant", line.Id, (object)instanceId);
+			await LineService.DeleteRemovedParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
-	public async ValueTask DisposeAsync()
+	private async Task DeleteLineAsync()
 	{
-		timer?.Stop();
-		timer?.Dispose();
-		if (hubConnection is not null)
+		if (line is null || !canManage)
 		{
-			try { if (line is not null) await hubConnection.SendAsync("LeaveLineGroup", line.Id); }
-			catch { /* connection may already be closed */ }
-			await hubConnection.DisposeAsync();
+			return;
 		}
-	}
 
-	// Method to start the timer
-	private async Task StartTimer()
-	{
-		OverlayService.ShowOverlay();
+		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Delete line '{line.Name}'? This cannot be undone."))
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			await hubConnection.SendAsync("StartTimer", line.Id);
+			await LineService.DeleteLineAsync(LineId, ManageToken ?? string.Empty);
+			NavigationManager.NavigateTo("/");
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
-		}
-	}
-
-	// Method to stop the timer
-	private async Task StopTimer()
-	{
-		OverlayService.ShowOverlay();
-		try
-		{
-			await hubConnection.SendAsync("StopTimer", line.Id);
-		}
-		finally
-		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task Edit()
 	{
-		NavigationManager.NavigateTo($"/edit-line/{lineId}");
+		NavigationManager.NavigateTo($"/edit-line/{LineId}");
 	}
 
 	private async Task ResumeTimer(MouseEventArgs args)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			await hubConnection.SendAsync("ResumeTimer", line.Id);
+			await LineService.ResumeTimerAsync(LineId, ManageToken ?? string.Empty);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task PauseTimer(MouseEventArgs args)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			await hubConnection.SendAsync("PauseTimer", line.Id);
+			await LineService.PauseTimerAsync(LineId, ManageToken ?? string.Empty);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
 		}
 	}
 
 	private async Task RestartTimer(MouseEventArgs args)
 	{
-		OverlayService.ShowOverlay();
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
 		try
 		{
-			await hubConnection.SendAsync("RestartTimer", line.Id);
+			await LineService.RestartTimerAsync(LineId, ManageToken ?? string.Empty);
 		}
 		finally
 		{
-			OverlayService.HideOverlay();
+			busy = false;
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		_subscription?.Dispose();
+		if (line is not null)
+		{
+			try
+			{
+				await JS.InvokeVoidAsync("hopInLine.stopCountdown", $"countdown-{LineId}");
+			}
+			catch
+			{
+				// JS runtime may not be available during disposal
+			}
 		}
 	}
 }
