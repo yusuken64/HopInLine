@@ -16,7 +16,7 @@ namespace HopInLine.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.8")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -26,8 +26,8 @@ namespace HopInLine.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<TimeSpan>("AutoAdvanceInterval")
-                        .HasColumnType("time");
+                    b.Property<int>("AutoAdvanceInterval")
+                        .HasColumnType("int");
 
                     b.Property<bool>("AutoAdvanceLine")
                         .HasColumnType("bit");
@@ -42,7 +42,8 @@ namespace HopInLine.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsPaused")
                         .HasColumnType("bit");
@@ -50,17 +51,32 @@ namespace HopInLine.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ManageToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("NextAdvanceAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("NextPosition")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan?>("UnpauseRemaining")
-                        .HasColumnType("time");
+                    b.Property<int?>("UnpauseRemaining")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NextAdvanceAt");
 
                     b.ToTable("Lines");
                 });
@@ -72,10 +88,12 @@ namespace HopInLine.Migrations
 
                     b.Property<string>("Color")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("LineId")
                         .IsRequired()
@@ -83,7 +101,8 @@ namespace HopInLine.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<int>("Position")
                         .HasColumnType("int");

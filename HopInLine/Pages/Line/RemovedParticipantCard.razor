@@ -1,44 +1,16 @@
-﻿<!-- RemovedParticipantCard.razor -->
-<div class="participant-card" style="background-color: @BackgroundColor;">
+﻿@using HopInLine.Data.Line
+
+<!-- RemovedParticipantCard.razor -->
+<div class="participant-card" style="background-color: @BackgroundColor; color: @ParticipantFactory.GetForegroundColor(@BackgroundColor)">
     <div class="participant-info">
-        <h5>@Name (@TurnCount)</h5>
+        <span>@Name (@TurnCount)</span>
         <p>@Description</p>
     </div>
     <div class="participant-actions">
-        <button @onclick="ReAdd">Re-Add</button>
-        <button @onclick="Delete">Delete</button>
+        <button @onclick="ReAdd" aria-label="Add @Name back to the line">Re-Add</button>
+        <button @onclick="Delete" aria-label="Permanently delete @Name">Delete</button>
     </div>
 </div>
-
-<style>
-    .participant-card {
-        position: relative; /* Allows absolute positioning of child elements */
-        border: 1px solid #ccc; /* Light gray border */
-        padding: 10px; /* Padding inside the card */
-        margin-bottom: 10px; /* Space between cards */
-        border-radius: 5px; /* Rounded corners */
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow */
-        height: 85px;
-        background-color: @BackgroundColor; /* Background color */
-    }
-
-    .participant-info {
-        margin-bottom: 50px; /* Space between the info and the actions */
-        /* Adjust this margin to ensure space for the buttons */
-    }
-
-    .participant-actions {
-        position: absolute; /* Position the container absolutely within the card */
-        top: 10px; /* Distance from the top edge */
-        right: 10px; /* Distance from the right edge */
-        display: flex; /* Display buttons in a row */
-        gap: 5px; /* Space between buttons */
-    }
-
-        .participant-actions button {
-            /* Additional button styling if needed */
-        }
-</style>
 
 
 @code {

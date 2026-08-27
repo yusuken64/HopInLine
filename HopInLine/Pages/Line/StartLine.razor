@@ -1,82 +1,164 @@
-﻿@page "/start-line"
+@page "/start-line"
 @using HopInLine.Data.Line;
 
-<h3>Start A Line</h3>
+<h1>Start a line</h1>
 
 <div>
     <p>To start a new line, please enter the following details:</p>
 </div>
 
-<div class="form-group">
-    <label for="lineName">Line Name:</label>
-    <input type="text" id="lineName" @bind="lineName" class="form-control" placeholder="Enter line name" />
-</div>
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
 
-<div class="form-group">
-    <label for="description">Description:</label>
-    <textarea id="description" @bind="description" class="form-control" placeholder="Enter description"></textarea>
-</div>
+@if (createdLineId == null)
+{
+    <div class="form-group">
+        <label for="lineName">Line Name:</label>
+        <input type="text" id="lineName" @bind="lineName" class="form-control" placeholder="Enter line name" />
+    </div>
 
-<div class="form-group">
-    <label for="autoAdvanceLine">Auto-Advance Line:</label>
-    <input type="checkbox" id="autoAdvanceLine" @bind="autoAdvanceLine" class="form-check-input" />
-</div>
+    <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" @bind="description" class="form-control" placeholder="Enter description"></textarea>
+    </div>
 
-<div class="form-group">
-    <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
-    <input type="number"
-           id="autoAdvanceMinutes"
-           @bind="autoAdvanceMinutes"
-           class="form-control"
-           disabled="@(autoAdvanceLine ? false : true)"
-           min="1"
-           max="999"
-           step="1" />
-</div>
-<div class="form-group">
-    <label for="autoReAdd">Auto Re-Add:</label>
-    <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
-</div>
+    <div class="form-group">
+        <label for="autoAdvanceLine">Auto-Advance Line:</label>
+        <input type="checkbox" id="autoAdvanceLine" @bind="autoAdvanceLine" class="form-check-input" />
+    </div>
 
-<button @onclick="CreateLine" class="btn btn-success">Create Line</button>
-<button @onclick="Cancel" class="btn btn-danger">Cancel</button>
+    <div class="form-group">
+        <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
+        <input type="number"
+               id="autoAdvanceMinutes"
+               @bind="autoAdvanceMinutes"
+               class="form-control"
+               disabled="@(autoAdvanceLine ? false : true)"
+               min="1"
+               max="1440"
+               step="1" />
+        @if (!string.IsNullOrEmpty(intervalValidationMessage))
+        {
+            <small style="color: red;">@intervalValidationMessage</small>
+        }
+    </div>
+    <div class="form-group">
+        <label for="autoReAdd">Auto Re-Add:</label>
+        <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
+    </div>
+
+    <button @onclick="CreateLine" class="btn btn-success">Create Line</button>
+    <button @onclick="Cancel" class="btn btn-danger">Cancel</button>
+}
+else
+{
+    <div class="alert alert-success" role="alert">
+        <h2>Your line has been created!</h2>
+        <p>Share this link with people who want to join the queue:</p>
+        <div style="background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px;">
+            <strong>Share this link:</strong><br />
+            <code>@shareLink</code>
+        </div>
+
+        <p style="color: red; font-weight: bold;">Keep this link safe — anyone with it can manage your line:</p>
+        <div style="background-color: #ffe6e6; padding: 10px; margin: 10px 0; border-radius: 4px; border-left: 4px solid red;">
+            <strong>Keep this link:</strong><br />
+            <code>@manageLink</code>
+        </div>
+
+        <button @onclick="GoToManageLine" class="btn btn-primary">Go to my line</button>
+    </div>
+}
 
 @code {
     [Inject]
-    private LineService LineService { get; set; } = null!;
+    private ILineService LineService { get; set; } = null!;
     [Inject]
     private OverlayService OverlayService { get; set; } = null!;
-    private string lineName;
-    private string description;
-    private bool autoAdvanceLine; 
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    private string lineName = string.Empty;
+    private string description = string.Empty;
+    private bool autoAdvanceLine;
     private int autoAdvanceMinutes;
-    private DateTime autoAdvanceInterval;
     private bool autoReAdd;
+    private string errorMessage = string.Empty;
+    private string intervalValidationMessage = string.Empty;
+    private string? createdLineId = null;
+    private string shareLink = string.Empty;
+    private string manageLink = string.Empty;
 
     private async Task CreateLine()
     {
+        errorMessage = string.Empty;
+        intervalValidationMessage = string.Empty;
+
+        // Validate interval bounds
+        if (autoAdvanceLine && (autoAdvanceMinutes < 1 || autoAdvanceMinutes > 1440))
+        {
+            intervalValidationMessage = "Auto-Advance Interval must be between 1 and 1440 minutes.";
+            return;
+        }
+
         OverlayService.ShowOverlay();
         if (string.IsNullOrWhiteSpace(lineName))
         {
             lineName = "New Line";
         }
 
-        var newLine = await LineService.CreateLineAsync(
-            lineName,
-            description,
-            autoReAdd,
-            autoAdvanceLine,
-            TimeSpan.FromMinutes(autoAdvanceMinutes));
+        try
+        {
+            // CreateLineAsync returns the new line with ManageToken populated (the creator gets the real token)
+            var newLine = await LineService.CreateLineAsync(
+                lineName,
+                description,
+                autoReAdd,
+                autoAdvanceLine,
+                TimeSpan.FromMinutes(autoAdvanceMinutes));
 
-        if (newLine == null)
-        {
-            //Error occurred
+            if (newLine == null)
+            {
+                errorMessage = "An error occurred while creating the line.";
+                OverlayService.HideOverlay();
+                return;
+            }
+
+            // Show the confirmation panel with both links
+            createdLineId = newLine.Id;
+            shareLink = NavigationManager.ToAbsoluteUri($"/view-line/{newLine.Id}").ToString();
+            manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
             OverlayService.HideOverlay();
-            return;
         }
-        else
+        catch (ArgumentOutOfRangeException ex)
         {
-            NavigationManager.NavigateTo($"/view-line/{newLine.Id}");
+            errorMessage = ex.Message;
+            OverlayService.HideOverlay();
+        }
+        catch (InvalidOperationException ex)
+        {
+            errorMessage = ex.Message;
+            OverlayService.HideOverlay();
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+            OverlayService.HideOverlay();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+            OverlayService.HideOverlay();
+        }
+    }
+
+    private void GoToManageLine()
+    {
+        if (createdLineId != null)
+        {
+            NavigationManager.NavigateTo(manageLink);
         }
     }
 
@@ -85,7 +167,4 @@
         // Navigate back to the home page or previous page
         NavigationManager.NavigateTo("/");
     }
-
-    [Inject]
-    private NavigationManager NavigationManager { get; set; }
 }

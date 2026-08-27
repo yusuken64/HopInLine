@@ -1,6 +1,8 @@
 ﻿@page "/"
 @using HopInLine.Data.Line;
 
+<h1>Hop In Line</h1>
+
 <h3>Welcome to HopInLine TEST</h3>
 
 <div class="mb-4">
@@ -10,11 +12,17 @@
 <div class="card">
     <div class="card-body">
         <h5 class="card-title">Join a Line</h5>
-        <div class="mb-3">
-            <label for="lineId" class="form-label">Enter Line ID:</label>
-            <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the Line ID here" />
-        </div>
-        <button @onclick="NavigateToJoinLine" class="btn btn-secondary btn-lg">Join</button>
+        <form @onsubmit="NavigateToJoinLine" @onsubmit:preventDefault>
+            <div class="mb-3">
+                <label for="lineId" class="form-label">Enter Line ID:</label>
+                <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the Line ID here" @aria-describedby="joinError != null ? "join-error" : null" />
+            </div>
+            @if (joinError != null)
+            {
+                <div class="alert alert-danger" role="alert" id="join-error">@joinError</div>
+            }
+            <button type="submit" class="btn btn-secondary btn-lg">Join</button>
+        </form>
     </div>
 </div>
 @code {
@@ -26,6 +34,7 @@
     [Inject]private OverlayService OverlayService { get; set; }
 
     private string lineID;
+    private string? joinError;
 
     private void NavigateToStartLine()
     {
@@ -35,20 +44,26 @@
 
     private async Task NavigateToJoinLine()
     {
+        joinError = null;
+
         OverlayService.ShowOverlay();
         try
         {
-            // Navigation logic to join a line with the specified lineID
-            if (string.IsNullOrEmpty(lineID))
+            var code = IdGenerator.NormalizeId(lineID ?? string.Empty);
+
+            if (string.IsNullOrEmpty(code))
             {
-                Console.WriteLine("Line ID is required to join a line.");
+                joinError = "Enter a line code.";
+                StateHasChanged();
                 return;
             }
-            var line = await lineService.GetLineByIdAsync(lineID);
+
+            var line = await lineService.GetLineByIdAsync(code);
 
             if (line == null)
             {
-                Console.WriteLine("Line ID invalid.");
+                joinError = $"No line found with code \"{code}\".";
+                StateHasChanged();
                 return;
             }
 

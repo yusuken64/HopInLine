@@ -1,55 +1,66 @@
-﻿@page "/edit-line/{lineId}"
+@page "/manage/{LineId}/{ManageToken}/edit"
 @using HopInLine.Data.Line;
-@if (line == null)
+@inject IJSRuntime JS
+@if (permissionDenied)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>You do not have permission to edit this line.</p>
+    </div>
+}
+else if (loadedLine == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-    <h3>Edit Line - @line.Name [@LineId]</h3>
-    
+    <h1>Edit line</h1>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
     <div>
         <p>To edit the line, please update the following details:</p>
     </div>
-    
+
     <div class="form-group">
         <label for="lineName">Line Name:</label>
-        <input type="text" id="lineName" @bind="line.Name" class="form-control" placeholder="Enter line name" />
+        <input type="text" id="lineName" @bind="editModel.Name" class="form-control" placeholder="Enter line name" />
     </div>
-    
+
     <div class="form-group">
         <label for="description">Description:</label>
-        <textarea id="description" @bind="line.Description" class="form-control" placeholder="Enter description"></textarea>
+        <textarea id="description" @bind="editModel.Description" class="form-control" placeholder="Enter description"></textarea>
     </div>
-    
+
     <div class="form-group">
         <label for="autoAdvanceLine">Timer Advance:</label>
-        <input type="checkbox" id="autoAdvanceLine" @bind="line.AutoAdvanceLine" class="form-check-input" />
+        <input type="checkbox" id="autoAdvanceLine" @bind="editModel.AutoAdvanceLine" class="form-check-input" />
     </div>
 
     <div class="form-group">
-        <label for="autoAdvanceLine">Auto Start Timer after Advancing:</label>
-        <input type="checkbox" id="autoRestartTimerOnAdvance" @bind="line.AutoRestartTimerOnAdvance" class="form-check-input" />
+        <label for="autoRestartTimerOnAdvance">Auto Start Timer after Advancing:</label>
+        <input type="checkbox" id="autoRestartTimerOnAdvance" @bind="editModel.AutoRestartTimerOnAdvance" class="form-check-input" />
     </div>
-
 
     <div class="form-group">
         <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
-        <input type="number" 
-               id="autoAdvanceMinutes" 
-               @bind="autoAdvanceMinutes"
+        <input type="number"
+               id="autoAdvanceMinutes"
+               @bind="editModel.AutoAdvanceIntervalMinutes"
                class="form-control"
-               disabled="@(!line.AutoAdvanceLine)"
-               min="1" 
-               max="999" 
+               disabled="@(!editModel.AutoAdvanceLine)"
+               min="1"
+               max="1440"
                step="1" />
     </div>
-    
+
     <div class="form-group">
         <label for="autoReAdd">Auto Re-Add:</label>
-        <input type="checkbox" id="autoReAdd" @bind="line.AutoReAdd" class="form-check-input" />
+        <input type="checkbox" id="autoReAdd" @bind="editModel.AutoReAdd" class="form-check-input" />
     </div>
-    
+
     <button @onclick="SaveChanges" class="btn btn-primary">Save</button>
     <button @onclick="Cancel" class="btn btn-secondary">Cancel</button>
     <button @onclick="Delete" class="btn btn-danger">Delete</button>
@@ -59,66 +70,120 @@ else
     [Inject]
     private LineService LineService { get; set; } = null!;
     [Inject]
+    private ILineService LineServiceInterface { get; set; } = null!;
+    [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
 
     [Parameter]
     public string LineId { get; set; } = string.Empty;
 
-    private Line line;
-    private int autoAdvanceMinutes;
+    [Parameter]
+    public string? ManageToken { get; set; }
+
+    private Line? loadedLine;
+    private EditModel editModel = new();
+    private string errorMessage = string.Empty;
+    private bool permissionDenied = false;
+
+    private class EditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool AutoAdvanceLine { get; set; }
+        public bool AutoReAdd { get; set; }
+        public bool AutoRestartTimerOnAdvance { get; set; }
+        public int AutoAdvanceIntervalMinutes { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            line = await LineService.GetLineByIdAsync(LineId);
+            // Validate the manage token first
+            bool isAuthorized = await LineServiceInterface.ValidateManageTokenAsync(LineId, ManageToken ?? string.Empty);
+            if (!isAuthorized)
+            {
+                permissionDenied = true;
+                return;
+            }
 
-            if (line == null)
+            loadedLine = await LineService.GetLineByIdAsync(LineId);
+
+            if (loadedLine == null)
             {
                 NavigationManager.NavigateTo("/not-found");
                 return;
             }
 
-            if (line.AutoAdvanceInterval == null)
+            // Load values into detached edit model
+            editModel = new EditModel
             {
-                autoAdvanceMinutes = 1;
-            }
-            else
-            {
-                autoAdvanceMinutes = Math.Max(1, (int)line.AutoAdvanceInterval.TotalMinutes);
-            }
+                Name = loadedLine.Name,
+                Description = loadedLine.Description,
+                AutoAdvanceLine = loadedLine.AutoAdvanceLine,
+                AutoReAdd = loadedLine.AutoReAdd,
+                AutoRestartTimerOnAdvance = loadedLine.AutoRestartTimerOnAdvance,
+                AutoAdvanceIntervalMinutes = (int)loadedLine.AutoAdvanceInterval.TotalMinutes
+            };
         }
         catch (Exception ex)
         {
             Console.WriteLine($"⚠️ Error loading line: {ex.Message}");
-            NavigationManager.NavigateTo("/error");
+            NavigationManager.NavigateTo("/not-found");
         }
     }
 
     private async Task SaveChanges()
     {
-        line.AutoAdvanceInterval = TimeSpan.FromMinutes(autoAdvanceMinutes < 1 ? 1: autoAdvanceMinutes);
-        var updatedLine = await LineService.UpdateLineAsync(line);
-
-        if (updatedLine == null)
+        // Validate interval bounds
+        if (editModel.AutoAdvanceIntervalMinutes < 1 || editModel.AutoAdvanceIntervalMinutes > 1440)
         {
-            // Handle error
+            errorMessage = "Auto-Advance Interval must be between 1 and 1440 minutes.";
             return;
         }
-        else
+
+        try
         {
-            NavigationManager.NavigateTo($"/view-line/{updatedLine.Id}");
+            await LineServiceInterface.UpdateLineAsync(
+                LineId,
+                ManageToken ?? string.Empty,
+                editModel.Name,
+                editModel.Description,
+                editModel.AutoAdvanceLine,
+                editModel.AutoReAdd,
+                editModel.AutoRestartTimerOnAdvance,
+                TimeSpan.FromMinutes(editModel.AutoAdvanceIntervalMinutes)
+            );
+
+            NavigationManager.NavigateTo($"/manage/{LineId}/{ManageToken}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save changes: {ex.Message}";
         }
     }
 
     private async Task Delete()
     {
-        await LineService.DeleteLineAsync(LineId);
-        NavigationManager.NavigateTo($"/");
+        bool confirmed = await JS.InvokeAsync<bool>("hopInLine.confirm", "Delete this line permanently? Everyone in it will lose their place.");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await LineServiceInterface.DeleteLineAsync(LineId, ManageToken ?? string.Empty);
+            NavigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to delete line: {ex.Message}";
+        }
     }
 
     private void Cancel()
     {
-        NavigationManager.NavigateTo($"/view-line/{LineId}");
+        NavigationManager.NavigateTo($"/manage/{LineId}/{ManageToken}");
     }
 }

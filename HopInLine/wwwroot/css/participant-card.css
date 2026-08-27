@@ -1,0 +1,33 @@
+.participant-card {
+    border: 1px solid #ccc; /* Light gray border */
+    padding: 10px; /* Padding inside the card */
+    margin-bottom: 10px; /* Space between cards */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow */
+    min-height: 85px; /* Changed from height: 85px to allow growth for long names */
+    display: flex; /* Make it a flex container */
+    flex-wrap: wrap; /* Allow wrapping of content */
+    gap: 0.5rem; /* Space between flex children */
+    align-items: center; /* Center items vertically */
+}
+
+.participant-info {
+    /* Removed margin-bottom: 50px to eliminate overlap */
+}
+
+.participant-actions {
+    display: flex; /* Display buttons in a row */
+    gap: 5px; /* Space between buttons */
+    margin-left: auto; /* Push to the end of the row */
+    flex-wrap: wrap; /* Allow wrapping below on narrow viewport */
+}
+
+.participant-actions button {
+    /* Additional button styling if needed */
+}
+
+/* Support word breaking for long names */
+.participant-info h5,
+.participant-info p {
+    word-break: break-word;
+}

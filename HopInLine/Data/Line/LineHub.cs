@@ -70,20 +70,6 @@ namespace HopInLine.Data.Line
 			await lineService.DeleteRemovedParticipantAsync(lineID, instanceId);
 		}
 
-		public async Task StartTimer(string lineId)
-		{
-			using var scope = serviceScopeFactory.CreateAsyncScope();
-			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
-			await lineService.StartTimerAsync(lineId);
-		}
-
-		public async Task StopTimer(string lineId)
-		{
-			using var scope = serviceScopeFactory.CreateAsyncScope();
-			var lineService = scope.ServiceProvider.GetRequiredService<LineService>();
-			await lineService.StopTimerAsync(lineId);
-		}
-
 		public async Task ResumeTimer(string lineId)
 		{
 			using var scope = serviceScopeFactory.CreateAsyncScope();

@@ -1,45 +1,129 @@
-﻿using HopInLine.Pages.Line;
+﻿using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace HopInLine.Data.Line
 {
-    public class LineService
+    public class LineService : ILineService
     {
         private readonly ILineRepository _lineRepository;
-        private readonly LineUpdatedNotifier lineUpdatedNotifier;
-        private readonly ParticipantFactory _participantFactory = new();
+        private readonly ILineChangeNotifier _notifier;
 
         public LineService(ILineRepository lineRepository,
-            LineUpdatedNotifier lineUpdatedNotifier)
+            ILineChangeNotifier notifier)
         {
             _lineRepository = lineRepository;
-            this.lineUpdatedNotifier = lineUpdatedNotifier;
+            _notifier = notifier;
         }
-        public async Task<Line> CreateLineAsync(
-            string name,
-            string description,
-            bool audoReAdd,
-            bool autoAdvanceLine,
-            TimeSpan autoAdvanceInterval)
+
+        /// <summary>
+        /// Authorization guard called at the top of every mutating method.
+        /// Normalizes the id, loads the line, throws KeyNotFoundException if the line does not exist,
+        /// compares the token, throws UnauthorizedAccessException on mismatch, and returns the line.
+        /// </summary>
+        private async Task<Line> AuthorizeAsync(string lineId, string manageToken)
         {
+            lineId = IdGenerator.NormalizeId(lineId);
+
+            var line = await _lineRepository.GetLineAsync(lineId);
+            if (line == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            // Compare tokens in constant time
+            bool tokensMatch = FixedTimeCompare(line.ManageToken, manageToken);
+            if (!tokensMatch)
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            return line;
+        }
+
+        /// <summary>
+        /// Compares two tokens in constant time to prevent timing attacks.
+        /// Both stored and provided tokens must be non-null and non-empty; otherwise returns false.
+        /// </summary>
+        private static bool FixedTimeCompare(string? stored, string? provided)
+        {
+            // Guard against null or empty stored token
+            if (string.IsNullOrEmpty(stored))
+            {
+                return false;
+            }
+
+            // Guard against null or empty provided token
+            if (string.IsNullOrEmpty(provided))
+            {
+                return false;
+            }
+
+            byte[] storedBytes = Encoding.UTF8.GetBytes(stored);
+            byte[] providedBytes = Encoding.UTF8.GetBytes(provided);
+
+            return CryptographicOperations.FixedTimeEquals(storedBytes, providedBytes);
+        }
+
+        /// <summary>
+        /// Gets a line by ID. Returns a LineDto with ManageToken set to string.Empty
+        /// (the read path must never leak the token to a page that did not supply it).
+        /// </summary>
+        public async Task<LineDto?> GetLineAsync(string lineId)
+        {
+            lineId = IdGenerator.NormalizeId(lineId);
+            var line = await _lineRepository.GetLineAsync(lineId);
+            if (line == null)
+            {
+                return null;
+            }
+
+            var dto = LineDto.FromLine(line);
+            dto.ManageToken = string.Empty; // Never leak the token
+            return dto;
+        }
+
+        /// <summary>
+        /// Creates a new line. Returns the real token to its creator.
+        /// </summary>
+        public async Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
+            bool autoAdvanceLine, TimeSpan autoAdvanceInterval)
+        {
+            // Server-side length enforcement
+            if (string.IsNullOrEmpty(name) || name.Length > 100)
+            {
+                throw new ArgumentException("Line name must be between 1 and 100 characters.");
+            }
+
+            if (!string.IsNullOrEmpty(description) && description.Length > 500)
+            {
+                throw new ArgumentException("Description must not exceed 500 characters.");
+            }
+
+            // Interval bounds
+            if (autoAdvanceInterval < TimeSpan.FromMinutes(1) || autoAdvanceInterval > TimeSpan.FromHours(24))
+            {
+                throw new ArgumentOutOfRangeException(nameof(autoAdvanceInterval), "Auto-advance interval must be between 1 minute and 24 hours.");
+            }
+
             const int maxAttempts = 100;
             int attempt = 0;
-            string newId;
+            string newId = null;
 
-            do
+            for (attempt = 0; attempt < maxAttempts; attempt++)
             {
                 newId = IdGenerator.GenerateUniqueId();
-                attempt++;
+                if (!_lineRepository.LineExists(newId))
+                {
+                    break;
+                }
             }
-            while (_lineRepository.LineExists(newId) && attempt < maxAttempts);
 
-            if (string.IsNullOrWhiteSpace(newId)) { return null; }
-
-            if (autoAdvanceInterval < TimeSpan.FromMinutes(1)) { autoAdvanceInterval = TimeSpan.FromMinutes(1); }
+            if (attempt >= maxAttempts)
+            {
+                throw new InvalidOperationException("Could not allocate a unique line id.");
+            }
 
             var newLine = new Line
             {
@@ -48,219 +132,370 @@ namespace HopInLine.Data.Line
                 Description = description,
                 AutoAdvanceLine = autoAdvanceLine,
                 AutoAdvanceInterval = autoAdvanceInterval,
-                AutoReAdd = audoReAdd,
-                CountDownStart = DateTime.UtcNow
+                AutoReAdd = autoReAdd,
+                CountDownStart = DateTime.UtcNow,
+                ManageToken = IdGenerator.GenerateManageToken()
             };
 
-            RestartTimer(newLine);
-            await AddLineAsync(newLine, new());
-            return await Task.FromResult(newLine);
+            await _lineRepository.AddLineAsync(newLine, CancellationToken.None);
+            await _notifier.NotifyAsync(newLine.Id);
+
+            return LineDto.FromLine(newLine); // Return the real token to the creator
         }
 
-		public async Task<Line> UpdateLineAsync(Line line)
-		{
-			RestartTimer(line);
-			await _lineRepository.UpdateLineAsync(line);
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-			return line;
-		}
-
-		public async Task<Line> GetLineByIdAsync(string id)
+        /// <summary>
+        /// Adds a participant to a line by name. No manageToken required; joining is public.
+        /// Builds the Participant server-side via ParticipantFactory.Create(...).
+        /// Never accepts a caller-supplied Participant.
+        /// </summary>
+        public async Task AddParticipantAsync(string lineId, string participantName)
         {
-            return await _lineRepository.GetLineAsync(id);
-        }
+            lineId = IdGenerator.NormalizeId(lineId);
 
-        public async Task<List<Line>> GetAllLinesAsync()
-        {
-            var lines = _lineRepository.GetAllLines();
-            return await Task.FromResult(lines);
-        }
-
-        public async Task DeleteLineAsync(string id)
-        {
-            var line = _lineRepository.GetLineAsync(id);
-            if (line != null)
+            // Validate name: reject null, whitespace-only, or over-60-character names
+            if (string.IsNullOrWhiteSpace(participantName))
             {
-                _lineRepository.RemoveLine(id);
+                throw new ArgumentException("Participant name cannot be null or whitespace.");
             }
-            lineUpdatedNotifier.StopLineAdvancement(id);
 
-            await Task.CompletedTask;
-        }
-
-        public async Task AddParticipantAsync(string lineID, Participant participant)
-        {
-            await _lineRepository.AddParticipantAsync(lineID, participant);
-            var line = await _lineRepository.GetLineAsync(lineID);
-            if (line.Participants.Count == 1) { line.CountDownStart = DateTime.UtcNow; }
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-        }
-
-        public async Task AdvanceLineAsync(string lineID)
-        {
-            await _lineRepository.AdvanceLineAsync(lineID);
-			var line = await _lineRepository.GetLineAsync(lineID);
-            if (line == null ||
-                line.Participants.IsNullOrEmpty())
+            if (participantName.Length > 60)
             {
-                return;
+                throw new ArgumentException("Participant name must not exceed 60 characters.");
             }
-            RestartTimer(line);
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-        }
 
-        private void RestartTimer(Line line)
-        {
-            lineUpdatedNotifier.StopLineAdvancement(line.Id);
+            var line = await _lineRepository.GetLineAsync(lineId);
+            if (line == null)
+            {
+                throw new KeyNotFoundException();
+            }
 
-            if (line == null) { return; }
+            // Abuse limit: participant cap at 200
+            var activeParticipants = line.Participants.Where(p => !p.Removed).ToList();
+            if (activeParticipants.Count >= 200)
+            {
+                throw new InvalidOperationException("This line is full.");
+            }
 
-            if (line.AutoAdvanceLine &&
-                line.AutoAdvanceInterval >= TimeSpan.FromMinutes(0) &&
-                line.Participants.Any())
+            // Build the Participant server-side via ParticipantFactory
+            var participant = ParticipantFactory.Create(participantName);
+
+            await _lineRepository.AddParticipantAsync(lineId, participant);
+
+            line = await _lineRepository.GetLineAsync(lineId);
+            if (line.Participants.Count == 1)
             {
                 line.CountDownStart = DateTime.UtcNow;
-                lineUpdatedNotifier.StartLineAdvancement(line);
             }
+
+            await _notifier.NotifyAsync(lineId);
         }
 
-        internal async Task MoveParticipantUpAsync(string lineID, string participantID)
+        /// <summary>
+        /// Updates a line's settings. Requires valid manageToken.
+        /// </summary>
+        public async Task UpdateLineAsync(string lineId, string manageToken, string name, string? description,
+            bool autoAdvanceLine, bool autoReAdd, bool autoRestartTimerOnAdvance,
+            TimeSpan autoAdvanceInterval)
         {
-            var line = await _lineRepository.GetLineAsync(lineID);
-            if (line == null) { return; }
-            var originalFirstParticipant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
+            var line = await AuthorizeAsync(lineId, manageToken);
 
-            await _lineRepository.MoveParticipantUpAsync(lineID, participantID);
-            line = await _lineRepository.GetLineAsync(lineID);
-            var participant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
-
-            if (participant?.Id != originalFirstParticipant?.Id)
+            // Server-side length enforcement
+            if (string.IsNullOrEmpty(name) || name.Length > 100)
             {
-                RestartTimer(line);
+                throw new ArgumentException("Line name must be between 1 and 100 characters.");
             }
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-        }
 
-        internal async Task MoveParticipantDownAsync(string lineID, string participantID)
-        {
-            var line = await _lineRepository.GetLineAsync(lineID);
-            if (line == null) { return; }
-            var originalFirstParticipant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
-
-            await _lineRepository.MoveParticipantDownAsync(lineID, participantID);
-            line = await _lineRepository.GetLineAsync(lineID);
-            var participant = line.Participants.OrderBy(x => x.Position).FirstOrDefault();
-
-            if (participant?.Id != originalFirstParticipant?.Id)
+            if (!string.IsNullOrEmpty(description) && description.Length > 500)
             {
-                RestartTimer(line);
+                throw new ArgumentException("Description must not exceed 500 characters.");
             }
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-        }
 
-        internal async Task RemoveParticipantAsync(string lineID, string participantID)
-        {
-            var line = await _lineRepository.GetLineAsync(lineID);
-            if (line == null) { return; }
-            var first = line.Participants
-                .Where(x => !x.Removed)
-                .OrderBy(x => x.Position).FirstOrDefault();
-
-            await _lineRepository.RemovedParticipantAsync(lineID, participantID);
-            line = await _lineRepository.GetLineAsync(lineID);
-
-            if (first?.Id == participantID)
+            // Interval bounds
+            if (autoAdvanceInterval < TimeSpan.FromMinutes(1) || autoAdvanceInterval > TimeSpan.FromHours(24))
             {
-                RestartTimer(line);
+                throw new ArgumentOutOfRangeException(nameof(autoAdvanceInterval), "Auto-advance interval must be between 1 minute and 24 hours.");
             }
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+
+            line.Name = name;
+            line.Description = description;
+            line.AutoAdvanceLine = autoAdvanceLine;
+            line.AutoReAdd = autoReAdd;
+            line.AutoRestartTimerOnAdvance = autoRestartTimerOnAdvance;
+            line.AutoAdvanceInterval = autoAdvanceInterval;
+
+            await _lineRepository.UpdateLineAsync(line);
+            await _notifier.NotifyAsync(line.Id);
         }
 
-        internal async Task ReAddRemovedParticipantAsync(string lineID, string participantID)
+        /// <summary>
+        /// Deletes a line. Requires valid manageToken.
+        /// </summary>
+        public async Task DeleteLineAsync(string lineId, string manageToken)
         {
-            var line = await _lineRepository.GetLineAsync(lineID);
-            if (line == null) { return; }
-            var removedParticipant = line.Participants.FirstOrDefault(x => x.Id.Equals(participantID));
-            if (removedParticipant == null) { return; }
+            var line = await AuthorizeAsync(lineId, manageToken);
 
-            await _lineRepository.ReAddRemovedParticipantAsync(lineID, participantID);
-            line = await _lineRepository.GetLineAsync(lineID);
-
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+            await _lineRepository.RemoveLineAsync(line.Id, CancellationToken.None);
+            await _notifier.NotifyAsync(line.Id);
         }
 
-        internal async Task DeleteRemovedParticipantAsync(string lineID, string instanceId)
+        /// <summary>
+        /// Advances the line to the next participant. Requires valid manageToken.
+        /// Abuse limit: reject a manual advance made less than 1 second after this line's CountDownStart.
+        /// </summary>
+        public async Task AdvanceLineAsync(string lineId, string manageToken)
         {
-            await _lineRepository.DeleteParticipantAsync(lineID, instanceId);
-            var line = await _lineRepository.GetLineAsync(lineID);
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            // Advance throttle: reject a manual advance made less than 1 second after CountDownStart
+            var timeSinceCountDown = DateTime.UtcNow - line.CountDownStart;
+            if (timeSinceCountDown < TimeSpan.FromSeconds(1))
+            {
+                // Return without advancing (blocks click-spam loop from racing the queue)
+                return;
+            }
+
+            await _lineRepository.AdvanceLineAsync(line.Id);
+            line = await _lineRepository.GetLineAsync(line.Id);
+            if (line == null || line.Participants.IsNullOrEmpty())
+            {
+                // Notify anyway (as per the original SERVICE-001 logic)
+                await _notifier.NotifyAsync(lineId);
+                return;
+            }
+
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Moves a participant up in the line. Requires valid manageToken.
+        /// </summary>
+        public async Task MoveParticipantUpAsync(string lineId, string manageToken, string participantId)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.MoveParticipantUpAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Moves a participant down in the line. Requires valid manageToken.
+        /// </summary>
+        public async Task MoveParticipantDownAsync(string lineId, string manageToken, string participantId)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.MoveParticipantDownAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Removes a participant from the line. Requires valid manageToken.
+        /// </summary>
+        public async Task RemoveParticipantAsync(string lineId, string manageToken, string participantId)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.RemovedParticipantAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Re-adds a removed participant to the line. Requires valid manageToken.
+        /// </summary>
+        public async Task ReAddRemovedParticipantAsync(string lineId, string manageToken, string participantId)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.ReAddRemovedParticipantAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Permanently deletes a removed participant. Requires valid manageToken.
+        /// </summary>
+        public async Task DeleteRemovedParticipantAsync(string lineId, string manageToken, string participantId)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.DeleteParticipantAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Pauses the line's timer. Requires valid manageToken.
+        /// </summary>
+        public async Task PauseTimerAsync(string lineId, string manageToken)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.PauseTimerAsync(line.Id);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Resumes the line's timer. Requires valid manageToken.
+        /// </summary>
+        public async Task ResumeTimerAsync(string lineId, string manageToken)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.ResumeTimerAsync(line.Id);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Restarts the line's timer. Requires valid manageToken.
+        /// </summary>
+        public async Task RestartTimerAsync(string lineId, string manageToken)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.RestartTimerAsync(line.Id);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Validates that the provided manageToken is correct for the line.
+        /// Must never throw for a wrong token or a missing line — returns false instead.
+        /// </summary>
+        public async Task<bool> ValidateManageTokenAsync(string lineId, string manageToken)
+        {
+            try
+            {
+                lineId = IdGenerator.NormalizeId(lineId);
+                var line = await _lineRepository.GetLineAsync(lineId);
+                if (line == null)
+                {
+                    return false;
+                }
+
+                return FixedTimeCompare(line.ManageToken, manageToken);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // ===== Legacy methods for backward compatibility =====
+        // These are called by other code that hasn't yet been refactored to use the new interface methods.
+        // The background scheduler (LineAdvancementTask) calls these directly without a token.
+
+        public async Task<Line> UpdateLineAsync(Line line)
+        {
+            line.Id = IdGenerator.NormalizeId(line.Id);
+            await _lineRepository.UpdateLineAsync(line);
+            await _notifier.NotifyAsync(line.Id);
+            return line;
+        }
+
+        public async Task<Line> GetLineByIdAsync(string id)
+        {
+            id = IdGenerator.NormalizeId(id);
+            return await _lineRepository.GetLineAsync(id);
         }
 
         public async Task AddLineAsync(Line newLine, CancellationToken cancellationToken)
         {
             await _lineRepository.AddLineAsync(newLine, cancellationToken);
-            await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(newLine));
+            await _notifier.NotifyAsync(newLine.Id);
         }
 
         public async Task RemoveLineAsync(string lineId, CancellationToken cancellationToken)
         {
-            lineUpdatedNotifier.StopLineAdvancement(lineId);
+            lineId = IdGenerator.NormalizeId(lineId);
             await _lineRepository.RemoveLineAsync(lineId, cancellationToken);
         }
 
-		public async Task StartTimerAsync(string lineId)
-		{
-            var line = await GetLineByIdAsync(lineId);
-			lineUpdatedNotifier.StartLineAdvancement(line);
-			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-		}
-
-		public async Task StopTimerAsync(string lineId)
-		{
-			var line = await GetLineByIdAsync(lineId);
-            line.AutoAdvanceLine = false;
-			lineUpdatedNotifier.StopLineAdvancement(lineId);
-			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-		}
-
-        public static LineViewModel ToLiveViewModel(Line line)
+        // Old method signature that's called from Hub (kept for backward compatibility)
+        internal async Task AddParticipantAsync(string lineID, Participant participant)
         {
-            return new()
-            {
-                AutoAdvanceInterval = line.AutoAdvanceInterval,
-                AutoAdvanceLine = line.AutoAdvanceLine,
-                AutoReAdd = line.AutoReAdd,
-                CountDownStart = line.CountDownStart,
-                Description = line.Description,
-                Id = line.Id,
-                LastUpdated = line.LastUpdated,
-                Name = line.Name,
-                Participants = line.Participants.Where(x => !x.Removed).ToList(),
-                RemovedParticipants = line.Participants.Where(x => x.Removed).ToList()
-            };
+            lineID = IdGenerator.NormalizeId(lineID);
+            await _lineRepository.AddParticipantAsync(lineID, participant);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line.Participants.Count == 1) { line.CountDownStart = DateTime.UtcNow; }
+            await _notifier.NotifyAsync(lineID);
         }
 
-		internal async Task ResumeTimerAsync(string lineId)
-		{
-			await _lineRepository.ResumeTimerAsync(lineId);
-			lineUpdatedNotifier.ResumeLineAdvancement(lineId);
-			var line = await GetLineByIdAsync(lineId);
-			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-		}
+        internal async Task AdvanceLineAsync(string lineID)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            await _lineRepository.AdvanceLineAsync(lineID);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null ||
+                line.Participants.IsNullOrEmpty())
+            {
+                return;
+            }
+            await _notifier.NotifyAsync(lineID);
+        }
 
-		internal async Task PauseTimerAsync(string lineId)
-		{
-			await _lineRepository.PauseTimerAsync(lineId);
-			lineUpdatedNotifier.StopLineAdvancement(lineId);
-			var line = await GetLineByIdAsync(lineId);
-			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-		}
+        internal async Task MoveParticipantUpAsync(string lineID, string participantID)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null) { return; }
 
-		internal async Task RestartTimerAsync(string lineId)
-		{
-			await _lineRepository.RestartTimerAsync(lineId);
-			var line = await GetLineByIdAsync(lineId);
-			await lineUpdatedNotifier.NotifyLineUpdatedAsync(new LineChangedEventArgs(line));
-		}
-	}
+            await _lineRepository.MoveParticipantUpAsync(lineID, participantID);
+            await _notifier.NotifyAsync(lineID);
+        }
+
+        internal async Task MoveParticipantDownAsync(string lineID, string participantID)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null) { return; }
+
+            await _lineRepository.MoveParticipantDownAsync(lineID, participantID);
+            await _notifier.NotifyAsync(lineID);
+        }
+
+        internal async Task RemoveParticipantAsync(string lineID, string participantID)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null) { return; }
+
+            await _lineRepository.RemovedParticipantAsync(lineID, participantID);
+            await _notifier.NotifyAsync(lineID);
+        }
+
+        internal async Task ReAddRemovedParticipantAsync(string lineID, string participantID)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            var line = await _lineRepository.GetLineAsync(lineID);
+            if (line == null) { return; }
+
+            await _lineRepository.ReAddRemovedParticipantAsync(lineID, participantID);
+            await _notifier.NotifyAsync(lineID);
+        }
+
+        internal async Task DeleteRemovedParticipantAsync(string lineID, string instanceId)
+        {
+            lineID = IdGenerator.NormalizeId(lineID);
+            await _lineRepository.DeleteParticipantAsync(lineID, instanceId);
+            await _notifier.NotifyAsync(lineID);
+        }
+
+        internal async Task ResumeTimerAsync(string lineId)
+        {
+            lineId = IdGenerator.NormalizeId(lineId);
+            await _lineRepository.ResumeTimerAsync(lineId);
+            await _notifier.NotifyAsync(lineId);
+        }
+
+        internal async Task PauseTimerAsync(string lineId)
+        {
+            lineId = IdGenerator.NormalizeId(lineId);
+            await _lineRepository.PauseTimerAsync(lineId);
+            await _notifier.NotifyAsync(lineId);
+        }
+
+        internal async Task RestartTimerAsync(string lineId)
+        {
+            lineId = IdGenerator.NormalizeId(lineId);
+            await _lineRepository.RestartTimerAsync(lineId);
+            await _notifier.NotifyAsync(lineId);
+        }
+    }
 }
