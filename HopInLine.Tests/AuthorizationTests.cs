@@ -312,12 +312,12 @@ public class AuthorizationTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task AddParticipant_BlankName_Throws(string blankName)
+    public async Task AddParticipant_BlankName_Throws(string? blankName)
     {
         var line = await _service.CreateLineAsync("Test Line", null, false, false, TimeSpan.FromMinutes(1));
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => _service.AddParticipantAsync(line.Id, blankName)
+            () => _service.AddParticipantAsync(line.Id, blankName ?? "")
         );
         Assert.Contains("name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

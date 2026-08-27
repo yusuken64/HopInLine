@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Components;
 
 public class OverlayService
 {
-    public event Action OnShowOverlay;
-    public event Action OnHideOverlay;
+    public event Action? OnShowOverlay;
+    public event Action? OnHideOverlay;
 
     public void ShowOverlay()
     {

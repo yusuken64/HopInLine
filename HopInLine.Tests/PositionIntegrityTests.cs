@@ -38,6 +38,7 @@ public class PositionIntegrityTests : IDisposable
 
         // Assert: Positions are sequential starting at 1, NextPosition is 4
         var retrieved = await _repository.GetLineAsync("POSITIONS-1");
+        Assert.NotNull(retrieved);
         var activeParticipants = retrieved.Participants
             .Where(p => !p.Removed)
             .OrderBy(p => p.Position)
@@ -64,14 +65,20 @@ public class PositionIntegrityTests : IDisposable
         await _repository.AddParticipantAsync("REGA-1", p2);
 
         var retrieved = await _repository.GetLineAsync("REGA-1");
-        Assert.Equal(1, retrieved.Participants.FirstOrDefault(x => x.Name == "Alice").Position);
-        Assert.Equal(2, retrieved.Participants.FirstOrDefault(x => x.Name == "Bob").Position);
+        Assert.NotNull(retrieved);
+        var alice = retrieved.Participants.FirstOrDefault(x => x.Name == "Alice");
+        var bob = retrieved.Participants.FirstOrDefault(x => x.Name == "Bob");
+        Assert.NotNull(alice);
+        Assert.NotNull(bob);
+        Assert.Equal(1, alice.Position);
+        Assert.Equal(2, bob.Position);
 
         // Act: Advance the line (Alice moves to end via AutoReAdd)
         await _repository.AdvanceLineAsync("REGA-1");
 
         // Get the state after advance
         retrieved = await _repository.GetLineAsync("REGA-1");
+        Assert.NotNull(retrieved);
         var aliceAfterAdvance = retrieved.Participants.FirstOrDefault(x => x.Name == "Alice");
         var bobAfterAdvance = retrieved.Participants.FirstOrDefault(x => x.Name == "Bob");
 
@@ -89,6 +96,7 @@ public class PositionIntegrityTests : IDisposable
 
         // Assert: All active participants have distinct positions
         retrieved = await _repository.GetLineAsync("REGA-1");
+        Assert.NotNull(retrieved);
         var activeParticipants = retrieved.Participants
             .Where(p => !p.Removed)
             .OrderBy(p => p.Position)
@@ -121,6 +129,7 @@ public class PositionIntegrityTests : IDisposable
         // First advance: A at position 1 should be served
         await _repository.AdvanceLineAsync("CYCLE-1");
         var state = await _repository.GetLineAsync("CYCLE-1");
+        Assert.NotNull(state);
         var active = state.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).ToList();
         Assert.Equal(3, active.Count);
         served.Add(active.First().Name); // Should be B
@@ -128,6 +137,7 @@ public class PositionIntegrityTests : IDisposable
         // Second advance: B at position 1 should be served
         await _repository.AdvanceLineAsync("CYCLE-1");
         state = await _repository.GetLineAsync("CYCLE-1");
+        Assert.NotNull(state);
         active = state.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).ToList();
         Assert.Equal(3, active.Count);
         served.Add(active.First().Name); // Should be C
@@ -135,6 +145,7 @@ public class PositionIntegrityTests : IDisposable
         // Third advance: C at position 1 should be served
         await _repository.AdvanceLineAsync("CYCLE-1");
         state = await _repository.GetLineAsync("CYCLE-1");
+        Assert.NotNull(state);
         active = state.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).ToList();
         Assert.Equal(3, active.Count);
         served.Add(active.First().Name); // Should be A
@@ -165,6 +176,7 @@ public class PositionIntegrityTests : IDisposable
         await _repository.AddParticipantAsync("READD-1", p2);
 
         var retrieved = await _repository.GetLineAsync("READD-1");
+        Assert.NotNull(retrieved);
         var alice = retrieved.Participants.First(x => x.Name == "Alice");
         var aliceId = alice.Id;
 
@@ -176,7 +188,8 @@ public class PositionIntegrityTests : IDisposable
 
         // Assert: Alice's position is greater than Bob's
         retrieved = await _repository.GetLineAsync("READD-1");
-        var aliceAfterReAdd = retrieved!.Participants.First(x => x.Name == "Alice");
+        Assert.NotNull(retrieved);
+        var aliceAfterReAdd = retrieved.Participants.First(x => x.Name == "Alice");
         var bobAfter = retrieved.Participants.First(x => x.Name == "Bob");
 
         Assert.False(aliceAfterReAdd.Removed);
@@ -191,6 +204,7 @@ public class PositionIntegrityTests : IDisposable
         await _repository.AddLineAsync(line, default);
 
         var retrieved = await _repository.GetLineAsync("EMPTY-1");
+        Assert.NotNull(retrieved);
         var initialNextPosition = retrieved.NextPosition;
 
         // Act & Assert: Advancing should not throw
@@ -198,6 +212,7 @@ public class PositionIntegrityTests : IDisposable
 
         // Verify NextPosition is unchanged
         retrieved = await _repository.GetLineAsync("EMPTY-1");
+        Assert.NotNull(retrieved);
         Assert.Equal(initialNextPosition, retrieved.NextPosition);
     }
 }

@@ -4,8 +4,8 @@ namespace HopInLine.Data.Line
 {
 	public class Line
 	{
-		public string Id { get; set; }
-		public string Name { get; set; }
+		public string Id { get; set; } = "";
+		public string Name { get; set; } = "";
 		public string? Description { get; set; }
 		public DateTime LastUpdated { get; set; }
 
@@ -30,10 +30,10 @@ namespace HopInLine.Data.Line
 
 	public class LineDto
 	{
-		public string Id { get; set; }
-		public string Name { get; set; }
-		public List<ParticipantDto> Participants { get; set; }
-		public List<ParticipantDto> RemovedParticipants { get; set; }
+		public string Id { get; set; } = "";
+		public string Name { get; set; } = "";
+		public List<ParticipantDto> Participants { get; set; } = [];
+		public List<ParticipantDto> RemovedParticipants { get; set; } = [];
 		public string? Description { get; set; }
 		public DateTime LastUpdated { get; set; }
 		public bool AutoAdvanceLine { get; set; }
@@ -44,7 +44,7 @@ namespace HopInLine.Data.Line
 		public bool AutoRestartTimerOnAdvance { get; set; } = true;
 		public TimeSpan? UnpauseRemaining { get; set; }
 		public DateTime? NextAdvanceAt { get; set; }
-		public string ManageToken { get; set; }
+		public string ManageToken { get; set; } = "";
 
 		internal static LineDto FromLine(Line line)
 		{
@@ -78,10 +78,10 @@ namespace HopInLine.Data.Line
 
 	public class ParticipantDto
 	{
-		public string Id { get; set; }
-		public string Name { get; set; }
+		public string Id { get; set; } = "";
+		public string Name { get; set; } = "";
 		public string? Description { get; set; }
-		public string Color { get; set; }
+		public string Color { get; set; } = "";
 		public int TurnCount { get; set; }
 		public int Position { get; set; }
 		public bool Removed { get; set; } = false;

@@ -15,10 +15,10 @@
 
 
 @code {
-    [Parameter] public string Name { get; set; }
-    [Parameter] public string Description { get; set; }
-    [Parameter] public string Id { get; set; }
-    [Parameter] public string BackgroundColor { get; set; }
+    [Parameter] public string Name { get; set; } = default!;
+    [Parameter] public string Description { get; set; } = default!;
+    [Parameter] public string Id { get; set; } = default!;
+    [Parameter] public string BackgroundColor { get; set; } = default!;
     [Parameter] public int TurnCount { get; set; }
 
 

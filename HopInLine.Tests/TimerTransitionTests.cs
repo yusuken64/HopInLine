@@ -36,6 +36,7 @@ public class TimerTransitionTests : IDisposable
 
         // Assert: Check NextAdvanceAt, IsPaused, and UnpauseRemaining
         var retrieved = await _repository.GetLineAsync("PAUSE-1");
+        Assert.NotNull(retrieved);
         Assert.Null(retrieved.NextAdvanceAt);
         Assert.True(retrieved.IsPaused);
         Assert.NotNull(retrieved.UnpauseRemaining);
@@ -62,6 +63,7 @@ public class TimerTransitionTests : IDisposable
 
         // Assert: NextAdvanceAt should be roughly 30 seconds in the future
         var retrieved = await _repository.GetLineAsync("RESUME-1");
+        Assert.NotNull(retrieved);
         Assert.NotNull(retrieved.NextAdvanceAt);
         Assert.False(retrieved.IsPaused);
         Assert.Null(retrieved.UnpauseRemaining);
@@ -86,6 +88,7 @@ public class TimerTransitionTests : IDisposable
 
         // Assert: UnpauseRemaining should be TimeSpan.Zero, never negative
         var retrieved = await _repository.GetLineAsync("PAUSE-PAST-1");
+        Assert.NotNull(retrieved);
         Assert.Null(retrieved.NextAdvanceAt);
         Assert.True(retrieved.IsPaused);
         Assert.NotNull(retrieved.UnpauseRemaining);
@@ -157,6 +160,7 @@ public class TimerTransitionTests : IDisposable
 
         // Assert: NextAdvanceAt should be roughly one full interval (30 seconds) in the future
         var retrieved = await _repository.GetLineAsync("RESTART-1");
+        Assert.NotNull(retrieved);
         Assert.NotNull(retrieved.NextAdvanceAt);
         Assert.Null(retrieved.UnpauseRemaining);
         Assert.False(retrieved.IsPaused);
@@ -181,6 +185,7 @@ public class TimerTransitionTests : IDisposable
 
         // Make the deadline definitely in the past so TryAdvanceAsync will succeed
         var retrieved = await _repository.GetLineAsync("NOAUTOREST-1");
+        Assert.NotNull(retrieved);
         retrieved.NextAdvanceAt = DateTime.UtcNow.AddSeconds(-1);
         await _repository.UpdateLineAsync(retrieved);
 
@@ -192,6 +197,7 @@ public class TimerTransitionTests : IDisposable
 
         // After advance, NextAdvanceAt should be null and IsPaused should be true
         retrieved = await _repository.GetLineAsync("NOAUTOREST-1");
+        Assert.NotNull(retrieved);
         Assert.Null(retrieved.NextAdvanceAt);
         Assert.True(retrieved.IsPaused);
 

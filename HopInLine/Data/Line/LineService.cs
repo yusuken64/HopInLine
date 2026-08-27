@@ -109,7 +109,7 @@ namespace HopInLine.Data.Line
 
             const int maxAttempts = 100;
             int attempt = 0;
-            string newId = null;
+            string newId = "";
 
             for (attempt = 0; attempt < maxAttempts; attempt++)
             {
@@ -182,7 +182,7 @@ namespace HopInLine.Data.Line
             await _lineRepository.AddParticipantAsync(lineId, participant);
 
             line = await _lineRepository.GetLineAsync(lineId);
-            if (line.Participants.Count == 1)
+            if (line != null && line.Participants.Count == 1)
             {
                 line.CountDownStart = DateTime.UtcNow;
             }
@@ -389,7 +389,7 @@ namespace HopInLine.Data.Line
             return line;
         }
 
-        public async Task<Line> GetLineByIdAsync(string id)
+        public async Task<Line?> GetLineByIdAsync(string id)
         {
             id = IdGenerator.NormalizeId(id);
             return await _lineRepository.GetLineAsync(id);
@@ -413,7 +413,7 @@ namespace HopInLine.Data.Line
             lineID = IdGenerator.NormalizeId(lineID);
             await _lineRepository.AddParticipantAsync(lineID, participant);
             var line = await _lineRepository.GetLineAsync(lineID);
-            if (line.Participants.Count == 1) { line.CountDownStart = DateTime.UtcNow; }
+            if (line != null && line.Participants.Count == 1) { line.CountDownStart = DateTime.UtcNow; }
             await _notifier.NotifyAsync(lineID);
         }
 

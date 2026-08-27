@@ -25,7 +25,7 @@
 @code {
     private bool isOverlayVisible;
 
-    [Inject] public OverlayService OverlayService { get; set; }
+    [Inject] public OverlayService OverlayService { get; set; } = default!;
 
     protected override void OnInitialized()
     {

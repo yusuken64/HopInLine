@@ -114,7 +114,7 @@ public class IdGeneratorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void NormalizeId_ReturnsEmptyForNullOrWhitespace(string input)
+    public void NormalizeId_ReturnsEmptyForNullOrWhitespace(string? input)
     {
         var normalized = IdGenerator.NormalizeId(input);
         Assert.Empty(normalized);

@@ -27,13 +27,13 @@
 </div>
 @code {
     [Inject]
-    private LineService lineService { get; set; } = null!;
+    private LineService lineService { get; set; } = default!;
     [Inject]
-    private NavigationManager NavigationManager { get; set; }
+    private NavigationManager NavigationManager { get; set; } = default!;
 
-    [Inject]private OverlayService OverlayService { get; set; }
+    [Inject]private OverlayService OverlayService { get; set; } = default!;
 
-    private string lineID;
+    private string lineID = "";
     private string? joinError;
 
     private void NavigateToStartLine()
