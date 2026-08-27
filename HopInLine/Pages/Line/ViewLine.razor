@@ -447,7 +447,7 @@ else
 
 	private async Task Edit()
 	{
-		NavigationManager.NavigateTo($"/edit-line/{LineId}");
+		NavigationManager.NavigateTo($"/manage/{LineId}/{ManageToken}/edit");
 	}
 
 	private async Task ResumeTimer(MouseEventArgs args)

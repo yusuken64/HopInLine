@@ -6,16 +6,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-builder.Services.AddScoped<LineService>();
-builder.Services.AddSingleton<ParticipantFactory>();
-builder.Services.AddSignalR();
-
-builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddSingleton<LineUpdatedNotifier>();
-builder.Services.AddSingleton<LineAdvancementService>();
+builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
+builder.Services.AddScoped<ILineService, LineService>();
+builder.Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
+builder.Services.AddHostedService<LineAdvancementBackgroundService>();
 
 builder.Services.AddScoped<OverlayService>();
 
@@ -55,12 +52,12 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.MapBlazorHub();
-app.MapHub<LineHub>("/linehub");
 app.MapFallbackToPage("/_Host");
 
 using (var scope = app.Services.CreateScope())
 {
-	var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+	var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+	using var db = factory.CreateDbContext();
 	db.Database.Migrate();
 }
 
