@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HopInLine.Data.Line
 {
@@ -8,7 +8,7 @@ namespace HopInLine.Data.Line
 		public string Name { get; set; }
 		public string? Description { get; set; }
 		public DateTime LastUpdated { get; set; }
-		
+
 		//Timer Related
 		public bool AutoAdvanceLine { get; set; }
 		public TimeSpan AutoAdvanceInterval { get; set; }
@@ -16,7 +16,12 @@ namespace HopInLine.Data.Line
 		public bool IsPaused {get;set;}
 		public bool AutoReAdd { get; set; }
 		public bool AutoRestartTimerOnAdvance { get; set; } = true;
-		public TimeSpan? UnpauseRemaining { get; internal set; }
+		public TimeSpan? UnpauseRemaining { get; set; }
+
+		//Advance Management
+		public DateTime? NextAdvanceAt { get; set; }
+		public string ManageToken { get; set; } = string.Empty;
+		public Guid Version { get; set; }
 
 		//Participants
 		public List<Participant> Participants { get; set; } = new();
@@ -37,7 +42,9 @@ namespace HopInLine.Data.Line
 		public bool AutoReAdd { get; set; }
 		public bool IsPaused { get; set; }
 		public bool AutoRestartTimerOnAdvance { get; set; } = true;
-		public TimeSpan? UnpauseRemaining { get; internal set; }
+		public TimeSpan? UnpauseRemaining { get; set; }
+		public DateTime? NextAdvanceAt { get; set; }
+		public string ManageToken { get; set; }
 
 		internal static LineDto FromLine(Line line)
 		{
@@ -53,7 +60,9 @@ namespace HopInLine.Data.Line
 				AutoRestartTimerOnAdvance = line.AutoRestartTimerOnAdvance,
 				UnpauseRemaining = line.UnpauseRemaining,
 				Description = line.Description,
-				LastUpdated = DateTime.Now,
+				LastUpdated = line.LastUpdated,
+				NextAdvanceAt = line.NextAdvanceAt,
+				ManageToken = line.ManageToken,
 				Participants = line.Participants
 					.Where(x => !x.Removed)
 					.Select(ParticipantDto.FromParticipant)
@@ -70,7 +79,7 @@ namespace HopInLine.Data.Line
 	public class ParticipantDto
 	{
 		public string Id { get; set; }
-		public string Name { get; set; }		
+		public string Name { get; set; }
 		public string? Description { get; set; }
 		public string Color { get; set; }
 		public int TurnCount { get; set; }

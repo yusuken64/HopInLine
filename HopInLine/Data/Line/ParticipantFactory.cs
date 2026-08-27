@@ -7,22 +7,20 @@ namespace HopInLine.Data.Line
 
 		private static readonly char[] _characters =
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".ToCharArray();
-		private static readonly Random _random = new Random();
 
 		public static string NewParticipantID(int length = 11)
 		{
 			var result = new StringBuilder(length);
 			for (int i = 0; i < length; i++)
 			{
-				result.Append(_characters[_random.Next(_characters.Length)]);
+				result.Append(_characters[Random.Shared.Next(_characters.Length)]);
 			}
 			return result.ToString();
 		}
 
 		public static string GenerateUniqueColor()
 		{
-			Random random = new Random();
-			int hue = random.Next(360); // Random hue between 0 and 360
+			int hue = Random.Shared.Next(360); // Random hue between 0 and 360
 			double saturation = 0.7;    // Fixed saturation for vibrancy (70%)
 			double lightness = 0.7;     // Fixed lightness for brightness (70%)
 
@@ -72,7 +70,7 @@ namespace HopInLine.Data.Line
 			return (r, g, b);
 		}
 
-		public Participant Create(string name = "Waiter")
+		public static Participant Create(string name = "Waiter")
 		{
             string newId = NewParticipantID();
             return new Participant()
@@ -81,6 +79,41 @@ namespace HopInLine.Data.Line
 				Id = newId,
 				Color = GenerateUniqueColor()
 			};
+		}
+
+		public static string GetForegroundColor(string backgroundHex)
+		{
+			// Parse the hex color string, tolerate missing #
+			if (string.IsNullOrWhiteSpace(backgroundHex))
+			{
+				return "#000000";
+			}
+
+			string hex = backgroundHex.StartsWith("#") ? backgroundHex : "#" + backgroundHex;
+
+			// Parse hex to RGB
+			if (!int.TryParse(hex.Substring(1, 2), System.Globalization.NumberStyles.HexNumber, null, out int r) ||
+			    !int.TryParse(hex.Substring(3, 2), System.Globalization.NumberStyles.HexNumber, null, out int g) ||
+			    !int.TryParse(hex.Substring(5, 2), System.Globalization.NumberStyles.HexNumber, null, out int b))
+			{
+				return "#000000";
+			}
+
+			// Convert RGB to 0-1 values
+			double rLinear = r / 255.0;
+			double gLinear = g / 255.0;
+			double bLinear = b / 255.0;
+
+			// Linearise each channel using WCAG formula
+			rLinear = rLinear <= 0.03928 ? rLinear / 12.92 : Math.Pow((rLinear + 0.055) / 1.055, 2.4);
+			gLinear = gLinear <= 0.03928 ? gLinear / 12.92 : Math.Pow((gLinear + 0.055) / 1.055, 2.4);
+			bLinear = bLinear <= 0.03928 ? bLinear / 12.92 : Math.Pow((bLinear + 0.055) / 1.055, 2.4);
+
+			// Compute relative luminance
+			double luminance = 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
+
+			// Return black text for light backgrounds (luminance > 0.179), white for dark
+			return luminance > 0.179 ? "#000000" : "#FFFFFF";
 		}
 	}
 }

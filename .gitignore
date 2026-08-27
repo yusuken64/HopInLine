@@ -3,3 +3,6 @@ obj
 .log
 .tmp
 /HopInLine/publish
+.vs/
+.env
+*.user

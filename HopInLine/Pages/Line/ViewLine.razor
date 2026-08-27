@@ -1,6 +1,7 @@
 ﻿@page "/view-line/{lineId}"
 @using HopInLine.Data.Line;
 @using Microsoft.AspNetCore.SignalR.Client;
+@implements IAsyncDisposable
 @if (line == null)
 {
 	if (string.IsNullOrEmpty(errorMessage))
@@ -153,43 +154,49 @@ else
 	protected override async Task OnInitializedAsync()
 	{
 		OverlayService.ShowOverlay();
-		var lineData = await lineService.GetLineByIdAsync(lineId);
-		line = LineDto.FromLine(lineData);
-
-		if (line == null) 
+		try
 		{
-			errorMessage = "line not found";
-			OverlayService.HideOverlay();
-			return;
-		}
-
-		var isDocker = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker";
-		var hubUri = isDocker
-			? new Uri("http://host.docker.internal:8080/linehub")
-			: NavigationManager.ToAbsoluteUri("/linehub");
-
-		Console.WriteLine($"🔍 HubConnection will use URI: {hubUri}");
-
-		hubConnection = new HubConnectionBuilder()
-			.WithUrl(hubUri)
-			.WithAutomaticReconnect()
-			.Build();
-
-		hubConnection.On<LineDto, uint>("UpdateLine", (newLine, updateId) =>
-		{
-			if (updateId >= updatedId)
+			var lineData = await lineService.GetLineByIdAsync(lineId);
+			if (lineData is null)
 			{
-				updatedId = updateId;
-				line = newLine;
-				InvokeAsync(StateHasChanged);
+				errorMessage = "Line not found.";
+				OverlayService.HideOverlay();
+				return;
 			}
-		});
+			line = LineDto.FromLine(lineData);
 
-		await hubConnection.StartAsync();
-		await hubConnection.SendAsync("JoinLineGroup", line.Id);
+			var isDocker = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker";
+			var hubUri = isDocker
+				? new Uri("http://host.docker.internal:8080/linehub")
+				: NavigationManager.ToAbsoluteUri("/linehub");
 
-		OverlayService.HideOverlay();
-		StartCountdown();
+			Console.WriteLine($"🔍 HubConnection will use URI: {hubUri}");
+
+			hubConnection = new HubConnectionBuilder()
+				.WithUrl(hubUri)
+				.WithAutomaticReconnect()
+				.Build();
+
+			hubConnection.On<LineDto, uint>("UpdateLine", (newLine, updateId) =>
+			{
+				if (updateId >= updatedId)
+				{
+					updatedId = updateId;
+					line = newLine;
+					InvokeAsync(StateHasChanged);
+				}
+			});
+
+			await hubConnection.StartAsync();
+			await hubConnection.SendAsync("JoinLineGroup", line.Id);
+
+			OverlayService.HideOverlay();
+			StartCountdown();
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private void StartCountdown()
@@ -238,72 +245,117 @@ else
 	private async Task AddParticipant()
 	{
 		OverlayService.ShowOverlay();
-		if (!string.IsNullOrWhiteSpace(newParticipant))
+		try
 		{
-			await hubConnection.SendAsync("AddParticipant", line.Id, new Participant()
-				{
-					Name = newParticipant,
-					Description = "",
-					Id = ParticipantFactory.NewParticipantID(),
-					Color = ParticipantFactory.GenerateUniqueColor()
-				});
-			newParticipant = string.Empty;
+			if (!string.IsNullOrWhiteSpace(newParticipant))
+			{
+				await hubConnection.SendAsync("AddParticipant", line.Id, new Participant()
+					{
+						Name = newParticipant,
+						Description = "",
+						Id = ParticipantFactory.NewParticipantID(),
+						Color = ParticipantFactory.GenerateUniqueColor()
+					});
+				newParticipant = string.Empty;
+			}
 		}
-		OverlayService.HideOverlay();
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task AdvanceLine()
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("AdvanceLine", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("AdvanceLine", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task MoveParticipantUp(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
-		var instanceId = participant.Id;
-		await hubConnection.SendAsync("MoveParticipantUp", line.Id, (object)instanceId);
-		OverlayService.HideOverlay();
+		try
+		{
+			var instanceId = participant.Id;
+			await hubConnection.SendAsync("MoveParticipantUp", line.Id, (object)instanceId);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task MoveParticipantDown(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
-		var instanceId = participant.Id;
-		await hubConnection.SendAsync("MoveParticipantDown", line.Id, (object)instanceId);
-		OverlayService.HideOverlay();
+		try
+		{
+			var instanceId = participant.Id;
+			await hubConnection.SendAsync("MoveParticipantDown", line.Id, (object)instanceId);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task RemoveParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
-		var instanceId = participant.Id;
-		await hubConnection.SendAsync("RemoveParticipant", line.Id, (object)instanceId);
-		OverlayService.HideOverlay();
+		try
+		{
+			var instanceId = participant.Id;
+			await hubConnection.SendAsync("RemoveParticipant", line.Id, (object)instanceId);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task ReAddRemovedParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
-		var instanceId = participant.Id;
-		await hubConnection.SendAsync("ReAddRemovedParticipant", line.Id, (object)instanceId);
-		OverlayService.HideOverlay();
+		try
+		{
+			var instanceId = participant.Id;
+			await hubConnection.SendAsync("ReAddRemovedParticipant", line.Id, (object)instanceId);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task DeleteRemovedParticipant(ParticipantDto participant)
 	{
 		OverlayService.ShowOverlay();
-		var instanceId = participant.Id;
-		await hubConnection.SendAsync("DeleteRemovedParticipant", line.Id, (object)instanceId);
-		OverlayService.HideOverlay();
+		try
+		{
+			var instanceId = participant.Id;
+			await hubConnection.SendAsync("DeleteRemovedParticipant", line.Id, (object)instanceId);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		if (hubConnection != null)
+		timer?.Stop();
+		timer?.Dispose();
+		if (hubConnection is not null)
 		{
-			await hubConnection.SendAsync("LeaveLineGroup", line.Id);
+			try { if (line is not null) await hubConnection.SendAsync("LeaveLineGroup", line.Id); }
+			catch { /* connection may already be closed */ }
 			await hubConnection.DisposeAsync();
 		}
 	}
@@ -312,16 +364,28 @@ else
 	private async Task StartTimer()
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("StartTimer", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("StartTimer", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	// Method to stop the timer
 	private async Task StopTimer()
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("StopTimer", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("StopTimer", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task Edit()
@@ -332,21 +396,39 @@ else
 	private async Task ResumeTimer(MouseEventArgs args)
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("ResumeTimer", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("ResumeTimer", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task PauseTimer(MouseEventArgs args)
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("PauseTimer", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("PauseTimer", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 
 	private async Task RestartTimer(MouseEventArgs args)
 	{
 		OverlayService.ShowOverlay();
-		await hubConnection.SendAsync("RestartTimer", line.Id);
-		OverlayService.HideOverlay();
+		try
+		{
+			await hubConnection.SendAsync("RestartTimer", line.Id);
+		}
+		finally
+		{
+			OverlayService.HideOverlay();
+		}
 	}
 }

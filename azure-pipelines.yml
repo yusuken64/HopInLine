@@ -1,5 +1,5 @@
 trigger:
-- master
+- main
 
 pool:
   vmImage: 'windows-latest'
@@ -11,7 +11,7 @@ steps:
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
-    version: '6.x.x'
+    version: '10.x'
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
 - script: dotnet restore

@@ -36,23 +36,27 @@
     private async Task NavigateToJoinLine()
     {
         OverlayService.ShowOverlay();
-        // Navigation logic to join a line with the specified lineID
-        if (string.IsNullOrEmpty(lineID))
+        try
         {
-            Console.WriteLine("Line ID is required to join a line.");
-            OverlayService.HideOverlay();
-            return;
-        }
-        var line = await lineService.GetLineByIdAsync(lineID);
+            // Navigation logic to join a line with the specified lineID
+            if (string.IsNullOrEmpty(lineID))
+            {
+                Console.WriteLine("Line ID is required to join a line.");
+                return;
+            }
+            var line = await lineService.GetLineByIdAsync(lineID);
 
-        if (line == null)
-        {
-            Console.WriteLine("Line ID invalid.");
-            OverlayService.HideOverlay();
-            return;
+            if (line == null)
+            {
+                Console.WriteLine("Line ID invalid.");
+                return;
+            }
+
+            NavigationManager.NavigateTo($"/view-line/{line.Id}");
         }
-        
-        NavigationManager.NavigateTo($"/view-line/{line.Id}");
-        OverlayService.HideOverlay();
+        finally
+        {
+            OverlayService.HideOverlay();
+        }
     }
 }
