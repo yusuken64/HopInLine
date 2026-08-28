@@ -1,6 +1,7 @@
 ﻿@page "/view-line/{LineId}"
 @page "/manage/{LineId}/{ManageToken}"
 @using HopInLine.Data.Line;
+@using Microsoft.EntityFrameworkCore;
 @implements IAsyncDisposable
 
 @if (line == null)
@@ -315,6 +316,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -349,6 +354,10 @@ else
 		catch (UnauthorizedAccessException)
 		{
 			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
 		}
 		catch (Exception ex)
 		{
@@ -385,6 +394,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -419,6 +432,10 @@ else
 		catch (UnauthorizedAccessException)
 		{
 			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
 		}
 		catch (Exception ex)
 		{
@@ -460,6 +477,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -494,6 +515,10 @@ else
 		catch (UnauthorizedAccessException)
 		{
 			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
 		}
 		catch (Exception ex)
 		{
@@ -534,6 +559,10 @@ else
 		catch (UnauthorizedAccessException)
 		{
 			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
 		}
 		catch (Exception ex)
 		{
@@ -576,6 +605,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -616,6 +649,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -651,6 +688,10 @@ else
 		{
 			errorMessage = "You no longer have permission to manage this line.";
 		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
 		catch (Exception ex)
 		{
 			errorMessage = $"An unexpected error occurred: {ex.Message}";
@@ -685,6 +726,10 @@ else
 		catch (UnauthorizedAccessException)
 		{
 			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
 		}
 		catch (Exception ex)
 		{

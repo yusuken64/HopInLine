@@ -11,33 +11,37 @@ namespace HopInLine.Data.Line
             _contextFactory = contextFactory;
         }
 
-        public async Task AddLineAsync(Line newLine, CancellationToken cancellationToken)
+        private async Task ExecuteWithRetryAsync(Func<ApplicationDbContext, Task> action, int maxAttempts = 3)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            await context.Lines.AddAsync(newLine, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                await using var transaction = await context.Database.BeginTransactionAsync();
+                try
+                {
+                    await action(context);
+                    await context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await transaction.RollbackAsync();
+                    if (attempt == maxAttempts) throw;
+                }
+            }
         }
 
-        public async Task AdvanceLineAsync(string lineId)
+        private static void ApplyAdvanceTransition(Line line)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-
-            var line = await context.Lines
-                .Include(l => l.Participants)
-                .FirstOrDefaultAsync(l => l.Id == lineId);
-
-            if (line == null)
-                return;
-
             var participant = line.Participants
                 .Where(x => !x.Removed)
                 .OrderBy(x => x.Position)
                 .FirstOrDefault();
 
             if (participant == null)
-            {
                 return;
-            }
+
             if (line.AutoReAdd)
             {
                 participant.Position = line.NextPosition++;
@@ -49,165 +53,163 @@ namespace HopInLine.Data.Line
             }
             participant.TurnCount++;
 
-            // Apply Advance transition
             line.NextAdvanceAt = line.AutoRestartTimerOnAdvance ? DateTime.UtcNow + line.AutoAdvanceInterval : null;
             line.IsPaused = !line.AutoRestartTimerOnAdvance;
             line.CountDownStart = DateTime.UtcNow;
+        }
 
-            await context.SaveChangesAsync();
+        public async Task AddLineAsync(Line newLine, CancellationToken cancellationToken)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            await context.Lines.AddAsync(newLine, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task AdvanceLineAsync(string lineId)
+        {
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineId);
+
+                if (line == null)
+                    return;
+
+                ApplyAdvanceTransition(line);
+            });
         }
 
 
         public async Task ReAddRemovedParticipantAsync(string lineID, string particiantID)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-
-            var line = await context.Lines
-                .Include(l => l.Participants)
-                .FirstOrDefaultAsync(l => l.Id == lineID);
-
-            if (line == null)
-                return;
-
-            var participant = line.Participants
-                .FirstOrDefault(x => x.Id == particiantID);
-
-            if (participant == null || participant.Removed == false)
+            await ExecuteWithRetryAsync(async context =>
             {
-                return;
-            }
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
 
-            participant.Position = line.NextPosition++;
-            participant.Removed = false;
+                if (line == null)
+                    return;
 
-            await context.SaveChangesAsync();
+                var participant = line.Participants.FirstOrDefault(x => x.Id == particiantID);
+                if (participant == null || participant.Removed == false)
+                    return;
+
+                participant.Position = line.NextPosition++;
+                participant.Removed = false;
+            });
         }
 
 
         public async Task MoveParticipantUpAsync(string lineID, string participantID)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
 
-            var line = await context.Lines
-                .Include(l => l.Participants)
-                .FirstOrDefaultAsync(l => l.Id == lineID);
+                if (line == null)
+                    return;
 
-            if (line == null)
-                return;
+                var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+                if (participant == null)
+                    return;
 
-            var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
-            if (participant == null)
-                return;
+                var participantAbove = line.Participants
+                    .Where(p => !p.Removed && p.Position < participant.Position)
+                    .OrderByDescending(p => p.Position)
+                    .FirstOrDefault();
 
-            var participantAbove = line.Participants
-                .Where(p => !p.Removed && p.Position < participant.Position)
-                .OrderByDescending(p => p.Position)
-                .FirstOrDefault();
+                if (participantAbove == null)
+                    return;
 
-            if (participantAbove == null)
-                return; // Already at top
-
-            // Swap positions
-            int temp = participant.Position;
-            participant.Position = participantAbove.Position;
-            participantAbove.Position = temp;
-
-            await context.SaveChangesAsync();
+                int temp = participant.Position;
+                participant.Position = participantAbove.Position;
+                participantAbove.Position = temp;
+            });
         }
 
         public async Task MoveParticipantDownAsync(string lineID, string participantID)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
 
-            var line = await context.Lines
-                .Include(l => l.Participants)
-                .FirstOrDefaultAsync(l => l.Id == lineID);
+                if (line == null)
+                    return;
 
-            if (line == null)
-                return;
+                var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+                if (participant == null)
+                    return;
 
-            var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
-            if (participant == null)
-                return;
+                var participantBelow = line.Participants
+                    .Where(p => !p.Removed && p.Position > participant.Position)
+                    .OrderBy(p => p.Position)
+                    .FirstOrDefault();
 
-            var participantBelow = line.Participants
-                .Where(p => !p.Removed && p.Position > participant.Position)
-                .OrderBy(p => p.Position)
-                .FirstOrDefault();
+                if (participantBelow == null)
+                    return;
 
-            if (participantBelow == null)
-                return; // Already at top
-
-            // Swap positions
-            int temp = participant.Position;
-            participant.Position = participantBelow.Position;
-            participantBelow.Position = temp;
-
-            await context.SaveChangesAsync();
+                int temp = participant.Position;
+                participant.Position = participantBelow.Position;
+                participantBelow.Position = temp;
+            });
         }
 
         public async Task RemovedParticipantAsync(string lineID, string participantID)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
 
-            var line = await context.Lines
-                .Include(l => l.Participants)
-                .FirstOrDefaultAsync(l => l.Id == lineID);
+                if (line == null)
+                    return;
 
-            if (line == null)
-                return;
+                var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
+                if (participant == null)
+                    return;
 
-            var participant = line.Participants.FirstOrDefault(p => p.Id == participantID && !p.Removed);
-            if (participant == null)
-                return;
-
-            participant.Removed = true;
-
-            await context.SaveChangesAsync();
+                participant.Removed = true;
+            });
         }
 
         public async Task AddParticipantAsync(string lineID, Participant participant)
         {
-            // Retrieve the line by its ID
-            await using var context = await _contextFactory.CreateDbContextAsync();
-
-            var line = await context.Lines
-                .Include(l => l.Participants) // Ensure participants are included
-                .FirstOrDefaultAsync(l => l.Id == lineID);
-
-            if (line != null)
+            await ExecuteWithRetryAsync(async context =>
             {
-                // Set the participant's position using NextPosition
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
+
+                if (line == null)
+                {
+                    throw new ArgumentException($"Line with ID {lineID} not found.");
+                }
+
                 participant.Position = line.NextPosition++;
-
-                // Set the participant as not removed
                 participant.Removed = false;
-
-                // Add the new participant to the line's participants list
                 line.Participants.Add(participant);
-
-                // Save changes to the database
-                await context.SaveChangesAsync();
-            }
-            else
-            {
-                // Handle the case where the line was not found
-                throw new ArgumentException($"Line with ID {lineID} not found.");
-            }
+            });
         }
 
         public async Task DeleteParticipantAsync(string lineID, string instanceId)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-
-            var participant = await context.Participants
-                .FirstOrDefaultAsync(p => p.Id == instanceId && p.LineId == lineID);
-
-            if (participant != null)
+            await ExecuteWithRetryAsync(async context =>
             {
-                context.Participants.Remove(participant);
-                await context.SaveChangesAsync();
-            }
+                var participant = await context.Participants
+                    .FirstOrDefaultAsync(p => p.Id == instanceId && p.LineId == lineID);
+
+                if (participant != null)
+                {
+                    context.Participants.Remove(participant);
+                }
+            });
         }
 
         public async Task<Line?> GetLineAsync(string id)
@@ -243,69 +245,65 @@ namespace HopInLine.Data.Line
             if (line == null)
                 throw new ArgumentNullException(nameof(line));
 
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var existingLine = await context.Lines
+                    .FirstOrDefaultAsync(l => l.Id == line.Id);
 
-            var existingLine = await context.Lines
-                .FirstOrDefaultAsync(l => l.Id == line.Id);
+                if (existingLine == null)
+                    throw new InvalidOperationException("Line not found.");
 
-            if (existingLine == null)
-                throw new InvalidOperationException("Line not found.");
-
-            context.Entry(existingLine).CurrentValues.SetValues(line);
-            await context.SaveChangesAsync();
+                context.Entry(existingLine).CurrentValues.SetValues(line);
+            });
         }
 
         public async Task PauseTimerAsync(string lineId)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
-            if (line == null) return;
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
+                if (line == null) return;
 
-            // Pause transition: if NextAdvanceAt is null, do nothing
-            if (line.NextAdvanceAt == null)
-                return;
+                if (line.NextAdvanceAt == null)
+                    return;
 
-            // Set UnpauseRemaining = NextAdvanceAt.Value - DateTime.UtcNow, clamped to TimeSpan.Zero if negative
-            var remaining = line.NextAdvanceAt.Value - DateTime.UtcNow;
-            if (remaining < TimeSpan.Zero)
-                remaining = TimeSpan.Zero;
+                var remaining = line.NextAdvanceAt.Value - DateTime.UtcNow;
+                if (remaining < TimeSpan.Zero)
+                    remaining = TimeSpan.Zero;
 
-            line.UnpauseRemaining = remaining;
-            line.NextAdvanceAt = null;
-            line.IsPaused = true;
-
-            await context.SaveChangesAsync();
+                line.UnpauseRemaining = remaining;
+                line.NextAdvanceAt = null;
+                line.IsPaused = true;
+            });
         }
 
         public async Task ResumeTimerAsync(string lineId)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
-            if (line == null)
-                return;
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
+                if (line == null)
+                    return;
 
-            // Resume transition: set NextAdvanceAt = DateTime.UtcNow + (UnpauseRemaining ?? AutoAdvanceInterval)
-            line.NextAdvanceAt = DateTime.UtcNow + (line.UnpauseRemaining ?? line.AutoAdvanceInterval);
-            line.UnpauseRemaining = null;
-            line.IsPaused = false;
-            line.CountDownStart = DateTime.UtcNow;
-
-            await context.SaveChangesAsync();
+                line.NextAdvanceAt = DateTime.UtcNow + (line.UnpauseRemaining ?? line.AutoAdvanceInterval);
+                line.UnpauseRemaining = null;
+                line.IsPaused = false;
+                line.CountDownStart = DateTime.UtcNow;
+            });
         }
 
         public async Task RestartTimerAsync(string lineId)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
-            if (line == null) return;
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
+                if (line == null) return;
 
-            // Restart transition: set NextAdvanceAt = DateTime.UtcNow + AutoAdvanceInterval
-            line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
-            line.UnpauseRemaining = null;
-            line.IsPaused = false;
-            line.CountDownStart = DateTime.UtcNow;
-
-            await context.SaveChangesAsync();
+                line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                line.UnpauseRemaining = null;
+                line.IsPaused = false;
+                line.CountDownStart = DateTime.UtcNow;
+            });
         }
 
         public async Task<IReadOnlyList<string>> GetDueLineIdsAsync(DateTime utcNow, CancellationToken cancellationToken)
@@ -345,7 +343,7 @@ namespace HopInLine.Data.Line
                     return false;
                 }
 
-                // Perform the same advance logic as AdvanceLineAsync
+                // Check if there is a non-removed participant to advance
                 var participant = line.Participants
                     .Where(x => !x.Removed)
                     .OrderBy(x => x.Position)
@@ -357,21 +355,7 @@ namespace HopInLine.Data.Line
                     return false;
                 }
 
-                if (line.AutoReAdd)
-                {
-                    participant.Position = line.NextPosition++;
-                    participant.Removed = false;
-                }
-                else
-                {
-                    participant.Removed = true;
-                }
-                participant.TurnCount++;
-
-                // Apply Advance transition
-                line.NextAdvanceAt = line.AutoRestartTimerOnAdvance ? DateTime.UtcNow + line.AutoAdvanceInterval : null;
-                line.IsPaused = !line.AutoRestartTimerOnAdvance;
-                line.CountDownStart = DateTime.UtcNow;
+                ApplyAdvanceTransition(line);
 
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();

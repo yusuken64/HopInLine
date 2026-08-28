@@ -1,5 +1,6 @@
 @page "/manage/{LineId}/{ManageToken}/edit"
 @using HopInLine.Data.Line;
+@using Microsoft.EntityFrameworkCore;
 @inject IJSRuntime JS
 @inject ILogger<EditLine> Logger
 @if (permissionDenied)
@@ -156,6 +157,11 @@ else
 
             NavigationManager.NavigateTo($"/manage/{LineId}/{ManageToken}");
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            Logger.LogError(ex, "Concurrency conflict saving changes for line {LineId}", LineId);
+            errorMessage = "Someone else just updated this line — please try again.";
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to save changes for line {LineId}", LineId);
@@ -175,6 +181,11 @@ else
         {
             await LineServiceInterface.DeleteLineAsync(LineId, ManageToken ?? string.Empty);
             NavigationManager.NavigateTo("/");
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            Logger.LogError(ex, "Concurrency conflict deleting line {LineId}", LineId);
+            errorMessage = "Someone else just updated this line — please try again.";
         }
         catch (Exception ex)
         {

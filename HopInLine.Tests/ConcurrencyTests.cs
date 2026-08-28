@@ -318,4 +318,108 @@ public class ConcurrencyTests : IDisposable
             Assert.Equal(3, unmodifiedLine.Participants.Count(p => !p.Removed));
         }
     }
+
+    /// <summary>
+    /// Test 6: ManualAdvance_RacingBackgroundSweep_DoesNotThrow
+    /// Fire a manual AdvanceLineAsync and a scheduled TryAdvanceAsync concurrently against the same
+    /// due line. Neither call should throw. The line must end up in a consistent state: exactly 3
+    /// active participants (AutoReAdd=true means nobody is permanently removed), all with distinct
+    /// positions, and at least one TurnCount incremented (proving at least one advance actually applied).
+    /// </summary>
+    [Fact]
+    public async Task ManualAdvance_RacingBackgroundSweep_DoesNotThrow()
+    {
+        // Arrange: a due line with three participants, auto-advance on, auto-reAdd on
+        var line = TestData.Line(id: "RACE-001", autoAdvanceLine: true, autoReAdd: true, autoRestartTimerOnAdvance: false);
+        line.NextAdvanceAt = DateTime.UtcNow.AddSeconds(-1); // Past deadline
+        line.NextPosition = 4;
+
+        var p1 = TestData.Participant("Alice", position: 1);
+        var p2 = TestData.Participant("Bob", position: 2);
+        var p3 = TestData.Participant("Charlie", position: 3);
+
+        using (var context = _fixture.CreateContext())
+        {
+            line.Participants.Add(p1);
+            line.Participants.Add(p2);
+            line.Participants.Add(p3);
+            context.Lines.Add(line);
+            await context.SaveChangesAsync();
+        }
+
+        var repository = new SQLLineRepository(_fixture);
+
+        // Act: race a manual advance against a scheduled advance. Neither call may throw.
+        var manualTask = repository.AdvanceLineAsync("RACE-001");
+        var scheduledTask = repository.TryAdvanceAsync("RACE-001");
+
+        var exception = await Record.ExceptionAsync(async () => await Task.WhenAll(manualTask, scheduledTask));
+
+        // Assert: no exception escaped either call
+        Assert.Null(exception);
+
+        // Assert: the line is in a consistent state afterward
+        using (var context = _fixture.CreateContext())
+        {
+            var finalLine = await context.Lines
+                .Include(l => l.Participants)
+                .FirstAsync(l => l.Id == "RACE-001");
+
+            var activeParticipants = finalLine.Participants.Where(p => !p.Removed).ToList();
+            Assert.Equal(3, activeParticipants.Count);
+            Assert.Equal(activeParticipants.Count, activeParticipants.Select(p => p.Position).Distinct().Count());
+            Assert.True(finalLine.Participants.Sum(p => p.TurnCount) >= 1);
+        }
+    }
+
+    /// <summary>
+    /// Test 7: ConcurrentAddParticipant_AllSucceedWithUniquePositions
+    /// Launch 5 concurrent AddParticipantAsync calls against a brand-new empty line.
+    /// None may throw, and all 5 participants must end up with distinct, sequential positions.
+    /// </summary>
+    [Fact]
+    public async Task ConcurrentAddParticipant_AllSucceedWithUniquePositions()
+    {
+        // Arrange: an empty line
+        var line = TestData.Line(id: "JOIN-001");
+
+        using (var context = _fixture.CreateContext())
+        {
+            context.Lines.Add(line);
+            await context.SaveChangesAsync();
+        }
+
+        var repository = new SQLLineRepository(_fixture);
+
+        // Act: 5 concurrent joins
+        var tasks = Enumerable.Range(0, 5)
+            .Select(i =>
+            {
+                var participant = new Participant
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = $"Joiner{i}",
+                    Color = "#FF5733"
+                };
+                return repository.AddParticipantAsync("JOIN-001", participant);
+            })
+            .ToList();
+
+        var exception = await Record.ExceptionAsync(async () => await Task.WhenAll(tasks));
+
+        // Assert: no exception escaped any call
+        Assert.Null(exception);
+
+        // Assert: all 5 joiners got distinct, sequential positions
+        using (var context = _fixture.CreateContext())
+        {
+            var finalLine = await context.Lines
+                .Include(l => l.Participants)
+                .FirstAsync(l => l.Id == "JOIN-001");
+
+            Assert.Equal(5, finalLine.Participants.Count);
+            var positions = finalLine.Participants.Select(p => p.Position).OrderBy(p => p).ToList();
+            Assert.Equal(new List<int> { 1, 2, 3, 4, 5 }, positions);
+        }
+    }
 }
