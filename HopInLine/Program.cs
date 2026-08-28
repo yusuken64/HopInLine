@@ -12,6 +12,8 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
 builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
+builder.Services.AddSingleton<ILineOwnerNotifier, DebugLineOwnerNotifier>();
+builder.Services.AddSingleton<IEmailRateLimiter, InMemoryEmailRateLimiter>();
 builder.Services.AddHostedService<LineAdvancementBackgroundService>();
 
 builder.Services.AddScoped<OverlayService>();

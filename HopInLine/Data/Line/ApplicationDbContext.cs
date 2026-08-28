@@ -55,6 +55,10 @@ public class ApplicationDbContext : DbContext
 			.HasMaxLength(7);
 
 		modelBuilder.Entity<Participant>()
+			.Property(p => p.LeaveToken)
+			.HasMaxLength(64);
+
+		modelBuilder.Entity<Participant>()
 			.HasOne(p => p.Line)
 			.WithMany(l => l.Participants)
 			.HasForeignKey(p => p.LineId)

@@ -21,6 +21,14 @@ else
 	<div style="padding-bottom: 180px;">
 		<h1 style="margin: 0;">@line.Name</h1>
 
+		@if (!string.IsNullOrEmpty(myParticipantId))
+		{
+			<div class="alert alert-info" role="alert">
+				You're in this line.
+				<button @onclick="LeaveLine" disabled="@busy">Leave line</button>
+			</div>
+		}
+
 		@if (!string.IsNullOrEmpty(errorMessage))
 		{
 			<div class="alert alert-danger" role="alert">@errorMessage</div>
@@ -200,6 +208,17 @@ else
 	private IDisposable? _subscription;
 	private bool busy;
 	private string? errorMessage;
+	private string? myParticipantId;
+	private string? myLeaveToken;
+	private bool _hasSavedRecentLine;
+
+	private class MyParticipation
+	{
+		[System.Text.Json.Serialization.JsonPropertyName("participantId")]
+		public string ParticipantId { get; set; } = "";
+		[System.Text.Json.Serialization.JsonPropertyName("leaveToken")]
+		public string LeaveToken { get; set; } = "";
+	}
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -246,6 +265,33 @@ else
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
+		if (firstRender && !_hasSavedRecentLine && line is not null)
+		{
+			_hasSavedRecentLine = true;
+			try
+			{
+				await JS.InvokeVoidAsync("hopInLine.saveRecentLine", new
+				{
+					lineId = LineId,
+					name = line.Name,
+					role = canManage ? "manage" : "view",
+					link = NavigationManager.Uri
+				});
+
+				var participation = await JS.InvokeAsync<MyParticipation?>("hopInLine.getMyParticipation", LineId);
+				if (participation is not null && line.Participants.Any(p => p.Id == participation.ParticipantId))
+				{
+					myParticipantId = participation.ParticipantId;
+					myLeaveToken = participation.LeaveToken;
+					StateHasChanged();
+				}
+			}
+			catch
+			{
+				// JS interop unavailable — skip these convenience features
+			}
+		}
+
 		if (line is not null)
 		{
 			if (line.AutoAdvanceLine && line.NextAdvanceAt.HasValue)
@@ -300,8 +346,18 @@ else
 		{
 			if (!string.IsNullOrWhiteSpace(newParticipant))
 			{
-				await LineService.AddParticipantAsync(LineId, newParticipant);
+				var result = await LineService.AddParticipantAsync(LineId, newParticipant);
 				newParticipant = string.Empty;
+				myParticipantId = result.ParticipantId;
+				myLeaveToken = result.LeaveToken;
+				try
+				{
+					await JS.InvokeVoidAsync("hopInLine.saveMyParticipation", LineId, result.ParticipantId, result.LeaveToken);
+				}
+				catch
+				{
+					// JS interop unavailable — the leave button will still work this session via in-memory state
+				}
 			}
 		}
 		catch (ArgumentException ex)
@@ -480,6 +536,46 @@ else
 		catch (DbUpdateConcurrencyException)
 		{
 			errorMessage = "Someone else just updated this line — please try again.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
+		}
+		finally
+		{
+			busy = false;
+		}
+	}
+
+	private async Task LeaveLine()
+	{
+		if (line is null || string.IsNullOrEmpty(myParticipantId) || string.IsNullOrEmpty(myLeaveToken))
+		{
+			return;
+		}
+
+		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", "Leave this line?"))
+		{
+			return;
+		}
+
+		busy = true;
+		errorMessage = null;
+		try
+		{
+			await LineService.RemoveSelfAsync(LineId, myParticipantId, myLeaveToken);
+			myParticipantId = null;
+			myLeaveToken = null;
+		}
+		catch (KeyNotFoundException)
+		{
+			errorMessage = "You are no longer in this line.";
+			myParticipantId = null;
+			myLeaveToken = null;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to leave this line.";
 		}
 		catch (Exception ex)
 		{

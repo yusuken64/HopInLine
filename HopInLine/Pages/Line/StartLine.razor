@@ -49,6 +49,11 @@
         <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
     </div>
 
+    <div class="form-group">
+        <label for="ownerEmail">Your email (optional):</label>
+        <input type="email" id="ownerEmail" @bind="ownerEmail" class="form-control" placeholder="Get a backup of your links by email" />
+    </div>
+
     <button @onclick="CreateLine" class="btn btn-success">Create Line</button>
     <button @onclick="Cancel" class="btn btn-danger">Cancel</button>
 }
@@ -68,6 +73,8 @@ else
             <code>@manageLink</code>
         </div>
 
+        <p>Anyone with this link has full control — share it with people you trust to help manage the line together.</p>
+
         <button @onclick="GoToManageLine" class="btn btn-primary">Go to my line</button>
     </div>
 }
@@ -79,12 +86,15 @@ else
     private OverlayService OverlayService { get; set; } = null!;
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject]
+    private IJSRuntime JS { get; set; } = null!;
 
     private string lineName = string.Empty;
     private string description = string.Empty;
     private bool autoAdvanceLine;
     private int autoAdvanceMinutes;
     private bool autoReAdd;
+    private string ownerEmail = string.Empty;
     private string errorMessage = string.Empty;
     private string intervalValidationMessage = string.Empty;
     private string? createdLineId = null;
@@ -117,7 +127,8 @@ else
                 description,
                 autoReAdd,
                 autoAdvanceLine,
-                TimeSpan.FromMinutes(autoAdvanceMinutes));
+                TimeSpan.FromMinutes(autoAdvanceMinutes),
+                string.IsNullOrWhiteSpace(ownerEmail) ? null : ownerEmail);
 
             if (newLine == null)
             {
@@ -130,6 +141,7 @@ else
             createdLineId = newLine.Id;
             shareLink = NavigationManager.ToAbsoluteUri($"/view-line/{newLine.Id}").ToString();
             manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
+            await JS.InvokeVoidAsync("hopInLine.saveRecentLine", new { lineId = newLine.Id, name = newLine.Name, role = "manage", link = manageLink });
             OverlayService.HideOverlay();
         }
         catch (ArgumentOutOfRangeException ex)

@@ -3,7 +3,7 @@
 
 <h1>Hop In Line</h1>
 
-<h3>Welcome to HopInLine TEST</h3>
+<h3>Track who's next — no sign-up required.</h3>
 
 <div class="mb-4">
     <button @onclick="NavigateToStartLine" class="btn btn-primary btn-lg">Start A Line</button>
@@ -25,6 +25,25 @@
         </form>
     </div>
 </div>
+
+@if (recentLines.Count > 0)
+{
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Your lines</h5>
+            <ul class="list-group">
+                @foreach (var entry in recentLines)
+                {
+                    <li class="list-group-item">
+                        <a href="@entry.Link">@entry.Name</a>
+                        <span class="text-muted">(@(entry.Role == "manage" ? "manager" : "viewer"))</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
 @code {
     [Inject]
     private ILineService LineService { get; set; } = default!;
@@ -33,8 +52,14 @@
 
     [Inject]private OverlayService OverlayService { get; set; } = default!;
 
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
     private string lineID = "";
     private string? joinError;
+
+    private List<RecentLineEntry> recentLines = new();
+    private bool _recentLinesLoaded;
 
     private void NavigateToStartLine()
     {
@@ -73,5 +98,37 @@
         {
             OverlayService.HideOverlay();
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_recentLinesLoaded)
+        {
+            _recentLinesLoaded = true;
+            try
+            {
+                var result = await JS.InvokeAsync<List<RecentLineEntry>>("hopInLine.getRecentLines");
+                recentLines = result ?? new();
+                StateHasChanged();
+            }
+            catch
+            {
+                recentLines = new();
+            }
+        }
+    }
+
+    private class RecentLineEntry
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("lineId")]
+        public string LineId { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        public string Role { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("link")]
+        public string Link { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("savedAt")]
+        public string SavedAt { get; set; } = "";
     }
 }
