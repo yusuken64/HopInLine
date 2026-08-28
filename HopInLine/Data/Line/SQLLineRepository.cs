@@ -210,15 +210,6 @@ namespace HopInLine.Data.Line
             }
         }
 
-        public async Task<List<Line>> GetAllLinesAsync(CancellationToken cancellationToken)
-        {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.Lines
-                .Include(l => l.Participants)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<Line?> GetLineAsync(string id)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();

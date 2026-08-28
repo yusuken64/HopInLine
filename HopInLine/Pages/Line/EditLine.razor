@@ -1,6 +1,7 @@
 @page "/manage/{LineId}/{ManageToken}/edit"
 @using HopInLine.Data.Line;
 @inject IJSRuntime JS
+@inject ILogger<EditLine> Logger
 @if (permissionDenied)
 {
     <div class="alert alert-danger" role="alert">
@@ -68,8 +69,6 @@ else
 }
 @code {
     [Inject]
-    private LineService LineService { get; set; } = null!;
-    [Inject]
     private ILineService LineServiceInterface { get; set; } = null!;
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
@@ -80,7 +79,7 @@ else
     [Parameter]
     public string? ManageToken { get; set; }
 
-    private Line? loadedLine;
+    private LineDto? loadedLine;
     private EditModel editModel = new();
     private string errorMessage = string.Empty;
     private bool permissionDenied = false;
@@ -107,7 +106,7 @@ else
                 return;
             }
 
-            loadedLine = await LineService.GetLineByIdAsync(LineId);
+            loadedLine = await LineServiceInterface.GetLineAsync(LineId);
 
             if (loadedLine == null)
             {
@@ -159,7 +158,8 @@ else
         }
         catch (Exception ex)
         {
-            errorMessage = $"Failed to save changes: {ex.Message}";
+            Logger.LogError(ex, "Failed to save changes for line {LineId}", LineId);
+            errorMessage = "Failed to save changes. Please try again.";
         }
     }
 
@@ -178,7 +178,8 @@ else
         }
         catch (Exception ex)
         {
-            errorMessage = $"Failed to delete line: {ex.Message}";
+            Logger.LogError(ex, "Failed to delete line {LineId}", LineId);
+            errorMessage = "Failed to delete this line. Please try again.";
         }
     }
 

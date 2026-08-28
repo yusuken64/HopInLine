@@ -6,7 +6,6 @@
 		Task AdvanceLineAsync(string lineID);
         Task AddParticipantAsync(string lineID, Participant participant);
 		Task DeleteParticipantAsync(string lineID, string instanceId);
-        Task<List<Line>> GetAllLinesAsync(CancellationToken cancellationToken);
         Task<Line?> GetLineAsync(string id);
         bool LineExists(string newId);
         Task RemoveLineAsync(string lineId, CancellationToken cancellationToken);

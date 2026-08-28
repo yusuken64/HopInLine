@@ -27,7 +27,7 @@
 </div>
 @code {
     [Inject]
-    private LineService lineService { get; set; } = default!;
+    private ILineService LineService { get; set; } = default!;
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
 
@@ -58,7 +58,7 @@
                 return;
             }
 
-            var line = await lineService.GetLineByIdAsync(code);
+            var line = await LineService.GetLineAsync(code);
 
             if (line == null)
             {

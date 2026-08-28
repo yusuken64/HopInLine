@@ -20,6 +20,11 @@ else
 	<div style="padding-bottom: 180px;">
 		<h1 style="margin: 0;">@line.Name</h1>
 
+		@if (!string.IsNullOrEmpty(errorMessage))
+		{
+			<div class="alert alert-danger" role="alert">@errorMessage</div>
+		}
+
 		@if (canManage)
 		{
 			<div style="display: flex; justify-content: space-between; align-items: center;">
@@ -289,6 +294,7 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			if (!string.IsNullOrWhiteSpace(newParticipant))
@@ -296,6 +302,22 @@ else
 				await LineService.AddParticipantAsync(LineId, newParticipant);
 				newParticipant = string.Empty;
 			}
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -311,9 +333,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.AdvanceLineAsync(LineId, ManageToken ?? string.Empty);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -329,9 +368,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.MoveParticipantUpAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -347,9 +403,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.MoveParticipantDownAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -370,9 +443,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.RemoveParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -388,9 +478,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.ReAddRemovedParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -411,9 +518,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.DeleteRemovedParticipantAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -434,10 +558,27 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.DeleteLineAsync(LineId, ManageToken ?? string.Empty);
 			NavigationManager.NavigateTo("/");
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -458,9 +599,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.ResumeTimerAsync(LineId, ManageToken ?? string.Empty);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -476,9 +634,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.PauseTimerAsync(LineId, ManageToken ?? string.Empty);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
@@ -494,9 +669,26 @@ else
 		}
 
 		busy = true;
+		errorMessage = null;
 		try
 		{
 			await LineService.RestartTimerAsync(LineId, ManageToken ?? string.Empty);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
 		}
 		finally
 		{
