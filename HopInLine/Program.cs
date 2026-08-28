@@ -3,6 +3,13 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Re-added last so it wins over the auto-loaded User Secrets during local debugging.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+}
+
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
