@@ -17,6 +17,7 @@ builder.Services.AddSingleton<IEmailRateLimiter, InMemoryEmailRateLimiter>();
 builder.Services.AddHostedService<LineAdvancementBackgroundService>();
 
 builder.Services.AddScoped<OverlayService>();
+builder.Services.AddScoped<ConfirmService>();
 
 // Detect if HTTPS is configured
 var httpsUrls = builder.Configuration["ASPNETCORE_HTTPS_PORTS"];

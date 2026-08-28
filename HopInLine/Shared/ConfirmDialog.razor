@@ -1,0 +1,32 @@
+@implements IDisposable
+@inject ConfirmService ConfirmService
+
+@if (ConfirmService.IsVisible)
+{
+    <div class="confirm-backdrop">
+        <div class="confirm-dialog" role="alertdialog" aria-modal="true">
+            <p class="confirm-message">@ConfirmService.Message</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" @onclick="() => ConfirmService.Cancel()">Cancel</button>
+                <button class="btn btn-danger" @onclick="() => ConfirmService.Confirm()">Confirm</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        ConfirmService.OnChange += HandleChange;
+    }
+
+    private void HandleChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ConfirmService.OnChange -= HandleChange;
+    }
+}

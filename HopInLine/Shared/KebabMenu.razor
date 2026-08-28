@@ -1,0 +1,56 @@
+@using Microsoft.AspNetCore.Components.Web
+
+<div class="kebab-menu">
+    <button
+        @onclick="() => isOpen = !isOpen"
+        @onkeydown="HandleKeyDown"
+        aria-haspopup="menu"
+        aria-expanded="@isOpen"
+        aria-label="@TriggerAriaLabel"
+        class="kebab-trigger">
+        ⋮
+    </button>
+
+    @if (isOpen)
+    {
+        <button class="kebab-backdrop" @onclick="() => isOpen = false" aria-hidden="true" tabindex="-1"></button>
+        <ul class="kebab-popover" role="menu" @onkeydown="HandleKeyDown">
+            @foreach (var item in Items)
+            {
+                <li role="none">
+                    <button
+                        role="menuitem"
+                        class="kebab-item @(item.IsDangerous ? "kebab-item-danger" : "")"
+                        aria-label="@(item.AriaLabel ?? item.Label)"
+                        @onclick="() => HandleItemClick(item)">
+                        @item.Label
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<KebabMenuItem> Items { get; set; } = new();
+
+    [Parameter]
+    public string TriggerAriaLabel { get; set; } = "More actions";
+
+    private bool isOpen;
+
+    private async Task HandleItemClick(KebabMenuItem item)
+    {
+        isOpen = false;
+        await item.OnClick.InvokeAsync(null);
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            isOpen = false;
+        }
+    }
+}

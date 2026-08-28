@@ -73,6 +73,8 @@ else
     private ILineService LineServiceInterface { get; set; } = null!;
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject]
+    private ConfirmService ConfirmService { get; set; } = null!;
 
     [Parameter]
     public string LineId { get; set; } = string.Empty;
@@ -171,7 +173,7 @@ else
 
     private async Task Delete()
     {
-        bool confirmed = await JS.InvokeAsync<bool>("hopInLine.confirm", "Delete this line permanently? Everyone in it will lose their place.");
+        bool confirmed = await ConfirmService.ConfirmAsync("Delete this line permanently? Everyone in it will lose their place.");
         if (!confirmed)
         {
             return;

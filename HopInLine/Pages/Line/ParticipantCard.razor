@@ -1,16 +1,20 @@
 ﻿@using HopInLine.Data.Line
+@using HopInLine.Shared
 
 <!-- ParticipantCard.razor -->
-<div class="participant-card" style="background-color: @BackgroundColor; color: @ParticipantFactory.GetForegroundColor(@BackgroundColor)">
+<div class="participant-card @(IsCurrentTurn ? "participant-card-hero" : "")">
+    <span class="participant-badge" style="background-color: @BackgroundColor;" aria-hidden="true"></span>
     <div class="participant-info">
-        <span>@Name — @TurnCount turn(s)</span>
+        <div>
+            <span>@Name — @TurnCount turn(s)</span>
+            @if (IsCurrentTurn)
+            {
+                <span class="participant-hero-badge">Up now</span>
+            }
+        </div>
         <p>@Description</p>
     </div>
-    <div class="participant-actions">
-        <button @onclick="MoveUp" aria-label="Move @Name up">Move Up</button>
-        <button @onclick="MoveDown" aria-label="Move @Name down">Move Down</button>
-        <button @onclick="Remove" aria-label="Remove @Name from the line">Remove</button>
-    </div>
+    <KebabMenu TriggerAriaLabel="@($"Actions for {Name}")" Items="@GetMenuItems()" />
 </div>
 
 
@@ -20,7 +24,7 @@
     [Parameter] public string Id { get; set; } = default!;
     [Parameter] public string BackgroundColor { get; set; } = default!;
     [Parameter] public int TurnCount { get; set; }
-
+    [Parameter] public bool IsCurrentTurn { get; set; }
 
     [Parameter] public EventCallback OnMoveUp { get; set; }
     [Parameter] public EventCallback OnMoveDown { get; set; }
@@ -29,4 +33,29 @@
     private async Task MoveUp() => await OnMoveUp.InvokeAsync(null);
     private async Task MoveDown() => await OnMoveDown.InvokeAsync(null);
     private async Task Remove() => await OnRemove.InvokeAsync(null);
+
+    private List<KebabMenuItem> GetMenuItems() => new()
+    {
+        new KebabMenuItem
+        {
+            Label = "Move Up",
+            AriaLabel = $"Move {Name} up",
+            OnClick = EventCallback.Factory.Create(this, MoveUp),
+            IsDangerous = false
+        },
+        new KebabMenuItem
+        {
+            Label = "Move Down",
+            AriaLabel = $"Move {Name} down",
+            OnClick = EventCallback.Factory.Create(this, MoveDown),
+            IsDangerous = false
+        },
+        new KebabMenuItem
+        {
+            Label = "Remove",
+            AriaLabel = $"Remove {Name} from the line",
+            OnClick = EventCallback.Factory.Create(this, Remove),
+            IsDangerous = true
+        }
+    };
 }

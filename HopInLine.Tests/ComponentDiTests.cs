@@ -29,6 +29,7 @@ public class ComponentDiTests : TestContext, IDisposable
         Services.AddScoped<ILineService, LineService>();
         Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
         Services.AddScoped<OverlayService>();
+        Services.AddScoped<ConfirmService>();
 
         // Set up JSInterop to no-op JS calls
         JSInterop.Mode = JSRuntimeMode.Loose;

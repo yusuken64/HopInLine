@@ -18,169 +18,147 @@
 }
 else
 {
-	<div style="padding-bottom: 180px;">
-		<h1 style="margin: 0;">@line.Name</h1>
+	<div class="view-line-shell">
+		<div>
+			<h1 style="margin: 0;">@line.Name</h1>
 
-		@if (!string.IsNullOrEmpty(myParticipantId))
-		{
-			<div class="alert alert-info" role="alert">
-				You're in this line.
-				<button @onclick="LeaveLine" disabled="@busy">Leave line</button>
-			</div>
-		}
-
-		@if (!string.IsNullOrEmpty(errorMessage))
-		{
-			<div class="alert alert-danger" role="alert">@errorMessage</div>
-		}
-
-		@if (canManage)
-		{
-			<div style="display: flex; justify-content: space-between; align-items: center;">
-				<div>
-					@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
-					{
-						@if (line.IsPaused)
-						{
-							<button @onclick="ResumeTimer" disabled="@busy">Resume Timer</button>
-						}
-						else
-						{
-							<button @onclick="PauseTimer" disabled="@busy">Pause Timer</button>
-						}
-
-						<button @onclick="RestartTimer" disabled="@busy">Restart Timer</button>
-					}
-					<button @onclick="Edit" disabled="@busy">Edit</button>
-					<button @onclick="DeleteLineAsync" disabled="@busy" style="color: red;">Delete Line</button>
+			@if (!string.IsNullOrEmpty(myParticipantId))
+			{
+				<div class="alert alert-info" role="alert">
+					You're in this line.
+					<button @onclick="LeaveLine" disabled="@busy">Leave line</button>
 				</div>
-			</div>
-		}
-
-		<div class="participants-list">
-			@if (line.Participants == null || line.Participants.Count == 0)
-			{
-				<p>There are no participants currently.</p>
 			}
-			else
+
+			@if (!string.IsNullOrEmpty(errorMessage))
 			{
-				@if (line.AutoAdvanceLine)
-				{
+				<div class="alert alert-danger" role="alert">@errorMessage</div>
+			}
+
+			@if (canManage)
+			{
+				<div style="display: flex; justify-content: space-between; align-items: center;">
 					<div>
-						<span>Time left to auto-advance: <span id="countdown-@line.Id" aria-live="polite">@GetTimeLeftDisplay()</span></span>
-						@if (line.IsPaused)
+						@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
 						{
-							<span style="color: orange; margin-left: 10px;">⏸️ Paused</span>
-						}
-						else
-						{
-							<span style="color: green; margin-left: 10px;">▶️ Playing</span>
-						}
-					</div>
-				}
-				@foreach (var participant in line.Participants.OrderBy(x => x.Position))
-				{
-					@if (canManage)
-					{
-						<ParticipantCard Name="@participant.Name"
-						Description="@participant.Description"
-						Id="@participant.Id"
-						BackgroundColor="@participant.Color"
-						TurnCount="@participant.TurnCount"
-						OnMoveUp="@(async () => await MoveParticipantUp(participant))"
-						OnMoveDown="@(async () => await MoveParticipantDown(participant))"
-						OnRemove="@(async () => await RemoveParticipant(participant))" />
-					}
-					else
-					{
-						<ParticipantCard Name="@participant.Name"
-						Description="@participant.Description"
-						Id="@participant.Id"
-						BackgroundColor="@participant.Color"
-						TurnCount="@participant.TurnCount"
-						OnMoveUp="@(async () => await Task.CompletedTask)"
-						OnMoveDown="@(async () => await Task.CompletedTask)"
-						OnRemove="@(async () => await Task.CompletedTask)" />
-					}
-				}
-			}
-		</div>
+							@if (line.IsPaused)
+							{
+								<button @onclick="ResumeTimer" disabled="@busy">Resume Timer</button>
+							}
+							else
+							{
+								<button @onclick="PauseTimer" disabled="@busy">Pause Timer</button>
+							}
 
-		<h2>Removed Participants History</h2>
-		@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
-		{
-			<p>Removed participants show up here.</p>
-		}
-		else
-		{
-			@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
-			{
-				@if (canManage)
+							<button @onclick="RestartTimer" disabled="@busy">Restart Timer</button>
+						}
+						<button @onclick="Edit" disabled="@busy">Edit</button>
+						<button @onclick="DeleteLineAsync" disabled="@busy" class="text-danger-token">Delete Line</button>
+					</div>
+				</div>
+			}
+
+			<div class="participants-list">
+				@if (line.Participants == null || line.Participants.Count == 0)
 				{
-					<RemovedParticipantCard Name="@participant.Name"
-						Description="@participant.Description"
-						Id="@participant.Id"
-						BackgroundColor="@participant.Color"
-						TurnCount="@participant.TurnCount"
-						OnReAdd="@(async () => await ReAddRemovedParticipant(participant))"
-						OnDelete="@(async () => await DeleteRemovedParticipant(participant))" />
+					<p>No one's in line yet — add the first person below.</p>
 				}
 				else
 				{
-					<RemovedParticipantCard Name="@participant.Name"
-						Description="@participant.Description"
-						Id="@participant.Id"
-						BackgroundColor="@participant.Color"
-						TurnCount="@participant.TurnCount"
-						OnReAdd="@(async () => await Task.CompletedTask)"
-						OnDelete="@(async () => await Task.CompletedTask)" />
+					var firstActiveId = line.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).FirstOrDefault()?.Id;
+					@if (line.AutoAdvanceLine)
+					{
+						<div>
+							<span>Time left to auto-advance: <span id="countdown-@line.Id" aria-live="polite">@GetTimeLeftDisplay()</span></span>
+							@if (line.IsPaused)
+							{
+								<span style="color: var(--color-pause); margin-left: var(--space-2);">⏸️ Paused</span>
+							}
+							else
+							{
+								<span style="color: var(--color-play); margin-left: var(--space-2);">▶️ Playing</span>
+							}
+						</div>
+					}
+					@foreach (var participant in line.Participants.OrderBy(x => x.Position))
+					{
+						@if (canManage)
+						{
+							<ParticipantCard @key="participant.Id"
+							Name="@participant.Name"
+							Description="@participant.Description"
+							Id="@participant.Id"
+							BackgroundColor="@participant.Color"
+							TurnCount="@participant.TurnCount"
+							IsCurrentTurn="@(participant.Id == firstActiveId)"
+							OnMoveUp="@(async () => await MoveParticipantUp(participant))"
+							OnMoveDown="@(async () => await MoveParticipantDown(participant))"
+							OnRemove="@(async () => await RemoveParticipant(participant))" />
+						}
+						else
+						{
+							<ParticipantCard @key="participant.Id"
+							Name="@participant.Name"
+							Description="@participant.Description"
+							Id="@participant.Id"
+							BackgroundColor="@participant.Color"
+							TurnCount="@participant.TurnCount"
+							IsCurrentTurn="@(participant.Id == firstActiveId)"
+							OnMoveUp="@(async () => await Task.CompletedTask)"
+							OnMoveDown="@(async () => await Task.CompletedTask)"
+							OnRemove="@(async () => await Task.CompletedTask)" />
+						}
+					}
+				}
+			</div>
+
+			<h2>Removed Participants History</h2>
+			@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+			{
+				<p>History shows up here once someone's had a turn.</p>
+			}
+			else
+			{
+				@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
+				{
+					@if (canManage)
+					{
+						<RemovedParticipantCard @key="participant.Id"
+							Name="@participant.Name"
+							Description="@participant.Description"
+							Id="@participant.Id"
+							BackgroundColor="@participant.Color"
+							TurnCount="@participant.TurnCount"
+							OnReAdd="@(async () => await ReAddRemovedParticipant(participant))"
+							OnDelete="@(async () => await DeleteRemovedParticipant(participant))" />
+					}
+					else
+					{
+						<RemovedParticipantCard @key="participant.Id"
+							Name="@participant.Name"
+							Description="@participant.Description"
+							Id="@participant.Id"
+							BackgroundColor="@participant.Color"
+							TurnCount="@participant.TurnCount"
+							OnReAdd="@(async () => await Task.CompletedTask)"
+							OnDelete="@(async () => await Task.CompletedTask)" />
+					}
 				}
 			}
-		}
-	</div>
-
-	<div class="toolbar">
-		<div class="toolbar-input">
-			<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" disabled="@busy" />
-			<button @onclick="AddParticipant" class="btn btn-success" disabled="@busy">Add</button>
 		</div>
-		@if (canManage)
-		{
-			<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
-		}
+
+		<div class="toolbar">
+			<div class="toolbar-input">
+				<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" disabled="@busy" />
+				<button @onclick="AddParticipant" class="btn btn-success" disabled="@busy">Add</button>
+			</div>
+			@if (canManage)
+			{
+				<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
+			}
+		</div>
 	</div>
 }
-
-<style>
-	.toolbar {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		width: 100%;
-		background-color: #f8f9fa;
-		border-top: 1px solid #ddd;
-		padding: 10px;
-		box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		z-index: 1000; /* Ensure it's on top */
-	}
-
-	.toolbar-input {
-		display: flex;
-		align-items: center;
-	}
-
-		.toolbar-input .form-control {
-			margin-right: 10px;
-			flex: 1; /* Allow the input to take available space */
-		}
-
-	.toolbar .btn {
-		white-space: nowrap; /* Prevent button text from wrapping */
-	}
-</style>
 
 @code {
 	private string? newParticipant;
@@ -193,6 +171,9 @@ else
 
 	[Inject]
 	private IJSRuntime JS { get; set; } = null!;
+
+	[Inject]
+	private ConfirmService ConfirmService { get; set; } = null!;
 
 	[Inject]
 	private NavigationManager NavigationManager { get; set; } = null!;
@@ -510,7 +491,7 @@ else
 			return;
 		}
 
-		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Remove {participant.Name}?"))
+		if (!await ConfirmService.ConfirmAsync($"Remove {participant.Name}?"))
 		{
 			return;
 		}
@@ -554,7 +535,7 @@ else
 			return;
 		}
 
-		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", "Leave this line?"))
+		if (!await ConfirmService.ConfirmAsync("Leave this line?"))
 		{
 			return;
 		}
@@ -633,7 +614,7 @@ else
 			return;
 		}
 
-		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Permanently delete {participant.Name}?"))
+		if (!await ConfirmService.ConfirmAsync($"Permanently delete {participant.Name}?"))
 		{
 			return;
 		}
@@ -677,7 +658,7 @@ else
 			return;
 		}
 
-		if (!await JS.InvokeAsync<bool>("hopInLine.confirm", $"Delete line '{line.Name}'? This cannot be undone."))
+		if (!await ConfirmService.ConfirmAsync($"Delete line '{line.Name}'? This cannot be undone."))
 		{
 			return;
 		}

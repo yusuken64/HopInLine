@@ -69,6 +69,9 @@ window.hopInLine = (function() {
 
                 var formatted = formatDuration(remainingSeconds);
                 element.textContent = formatted;
+                element.classList.remove("countdown-tick");
+                void element.offsetWidth; // force reflow so the animation restarts every tick
+                element.classList.add("countdown-tick");
 
                 // Stop the interval if time has passed
                 if (remainingSeconds <= 0) {
@@ -127,6 +130,32 @@ window.hopInLine = (function() {
                 return raw ? JSON.parse(raw) : null;
             } catch (e) {
                 return null;
+            }
+        },
+
+        copyToClipboard: function(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).then(function() {
+                    return true;
+                }).catch(function() {
+                    return false;
+                });
+            }
+
+            // Fallback for non-secure contexts / older browsers
+            try {
+                var textarea = document.createElement("textarea");
+                textarea.value = text;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                var succeeded = document.execCommand("copy");
+                document.body.removeChild(textarea);
+                return Promise.resolve(succeeded);
+            } catch (e) {
+                return Promise.resolve(false);
             }
         }
     };
