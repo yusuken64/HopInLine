@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,12 +10,18 @@ namespace HopInLine.Data.Line
     {
         private readonly ILineRepository _lineRepository;
         private readonly ILineChangeNotifier _notifier;
+        private readonly ILineOwnerNotifier _ownerNotifier;
+        private readonly IEmailRateLimiter _rateLimiter;
 
         public LineService(ILineRepository lineRepository,
-            ILineChangeNotifier notifier)
+            ILineChangeNotifier notifier,
+            ILineOwnerNotifier ownerNotifier,
+            IEmailRateLimiter rateLimiter)
         {
             _lineRepository = lineRepository;
             _notifier = notifier;
+            _ownerNotifier = ownerNotifier;
+            _rateLimiter = rateLimiter;
         }
 
         /// <summary>
@@ -88,7 +95,7 @@ namespace HopInLine.Data.Line
         /// Creates a new line. Returns the real token to its creator.
         /// </summary>
         public async Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
-            bool autoAdvanceLine, TimeSpan autoAdvanceInterval)
+            bool autoAdvanceLine, TimeSpan autoAdvanceInterval, string? ownerEmail = null)
         {
             // Server-side length enforcement
             if (string.IsNullOrEmpty(name) || name.Length > 100)
@@ -99,6 +106,22 @@ namespace HopInLine.Data.Line
             if (!string.IsNullOrEmpty(description) && description.Length > 500)
             {
                 throw new ArgumentException("Description must not exceed 500 characters.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(ownerEmail))
+            {
+                try
+                {
+                    var parsedAddress = new System.Net.Mail.MailAddress(ownerEmail);
+                    if (parsedAddress.Address != ownerEmail)
+                    {
+                        throw new FormatException();
+                    }
+                }
+                catch (FormatException)
+                {
+                    throw new ArgumentException("Owner email is not a valid email address.");
+                }
             }
 
             // Interval bounds
@@ -140,6 +163,13 @@ namespace HopInLine.Data.Line
             await _lineRepository.AddLineAsync(newLine, CancellationToken.None);
             await _notifier.NotifyAsync(newLine.Id);
 
+            if (!string.IsNullOrWhiteSpace(ownerEmail) && _rateLimiter.TryConsume(ownerEmail))
+            {
+                var viewUrl = $"/view-line/{newLine.Id}";
+                var manageUrl = $"/manage/{newLine.Id}/{newLine.ManageToken}";
+                await _ownerNotifier.NotifyLineCreatedAsync(ownerEmail, newLine.Name, viewUrl, manageUrl);
+            }
+
             return LineDto.FromLine(newLine); // Return the real token to the creator
         }
 
@@ -148,7 +178,7 @@ namespace HopInLine.Data.Line
         /// Builds the Participant server-side via ParticipantFactory.Create(...).
         /// Never accepts a caller-supplied Participant.
         /// </summary>
-        public async Task AddParticipantAsync(string lineId, string participantName)
+        public async Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName)
         {
             lineId = IdGenerator.NormalizeId(lineId);
 
@@ -188,6 +218,8 @@ namespace HopInLine.Data.Line
             }
 
             await _notifier.NotifyAsync(lineId);
+
+            return new ParticipantJoinResult(participant.Id, participant.LeaveToken);
         }
 
         /// <summary>
@@ -294,6 +326,42 @@ namespace HopInLine.Data.Line
         public async Task RemoveParticipantAsync(string lineId, string manageToken, string participantId)
         {
             var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.RemovedParticipantAsync(line.Id, participantId);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Removes the calling participant from the line using their personal leave token.
+        /// Distinct authorization axis from the manage token: only the participant's own
+        /// LeaveToken is checked, not Line.ManageToken.
+        /// </summary>
+        public async Task RemoveSelfAsync(string lineId, string participantId, string leaveToken)
+        {
+            lineId = IdGenerator.NormalizeId(lineId);
+
+            var line = await _lineRepository.GetLineAsync(lineId);
+            if (line == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            var participant = line.Participants.FirstOrDefault(p => p.Id == participantId);
+            if (participant == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            bool tokensMatch = FixedTimeCompare(participant.LeaveToken, leaveToken);
+            if (!tokensMatch)
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            if (participant.Removed)
+            {
+                return;
+            }
 
             await _lineRepository.RemovedParticipantAsync(line.Id, participantId);
             await _notifier.NotifyAsync(line.Id);

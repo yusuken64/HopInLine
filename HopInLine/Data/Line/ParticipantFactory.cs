@@ -77,7 +77,8 @@ namespace HopInLine.Data.Line
 			{
 				Name = name,
 				Id = newId,
-				Color = GenerateUniqueColor()
+				Color = GenerateUniqueColor(),
+				LeaveToken = IdGenerator.GenerateManageToken()
 			};
 		}
 

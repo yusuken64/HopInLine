@@ -95,6 +95,11 @@ namespace HopInLine.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("LeaveToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("LineId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");

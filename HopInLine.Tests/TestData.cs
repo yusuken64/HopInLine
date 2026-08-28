@@ -42,7 +42,7 @@ public static class TestData
     /// <summary>
     /// Creates a valid Participant with a fixed colour so assertions are deterministic.
     /// </summary>
-    public static Participant Participant(string name, int position, bool removed = false)
+    public static Participant Participant(string name, int position, bool removed = false, string leaveToken = "test-leave-token")
     {
         return new Participant
         {
@@ -54,7 +54,8 @@ public static class TestData
             Position = position,
             Removed = removed,
             LineId = string.Empty,
-            Line = null!
+            Line = null!,
+            LeaveToken = leaveToken
         };
     }
 }

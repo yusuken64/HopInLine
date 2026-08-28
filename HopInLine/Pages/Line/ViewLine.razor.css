@@ -1,0 +1,50 @@
+.view-line-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+
+.toolbar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--color-gray-50);
+    border-top: 1px solid var(--color-gray-300);
+    padding: var(--space-3);
+    padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+    box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+}
+
+.toolbar-input {
+    display: flex;
+    align-items: center;
+}
+
+.toolbar-input .form-control {
+    margin-right: var(--space-3);
+    flex: 1;
+}
+
+.toolbar .btn {
+    white-space: nowrap;
+}
+
+@keyframes countdown-pulse {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.countdown-tick {
+    display: inline-block;
+    animation: countdown-pulse var(--transition-base) var(--ease-standard);
+}
+
+.text-danger-token {
+    color: var(--color-danger);
+}

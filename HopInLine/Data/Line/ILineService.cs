@@ -27,16 +27,18 @@ namespace HopInLine.Data.Line
 		/// <param name="autoReAdd">Whether removed participants are automatically re-added.</param>
 		/// <param name="autoAdvanceLine">Whether the line automatically advances.</param>
 		/// <param name="autoAdvanceInterval">The interval for automatic advancement.</param>
+		/// <param name="ownerEmail">Optional email address for the line owner.</param>
 		/// <returns>The created <see cref="LineDto"/> including its <see cref="LineDto.ManageToken"/>, so the creator can be shown both the join link and the manage link.</returns>
 		Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
-										bool autoAdvanceLine, TimeSpan autoAdvanceInterval);
+										bool autoAdvanceLine, TimeSpan autoAdvanceInterval, string? ownerEmail = null);
 
 		/// <summary>
 		/// Adds a participant to a line by name. No manageToken required; anyone can join.
 		/// </summary>
 		/// <param name="lineId">The ID of the line.</param>
 		/// <param name="participantName">The name of the participant to add.</param>
-		Task AddParticipantAsync(string lineId, string participantName);
+		/// <returns>The <see cref="ParticipantJoinResult"/> containing the participant ID and leave token.</returns>
+		Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName);
 
 		/// <summary>
 		/// Updates a line's settings. Requires valid manageToken.
@@ -91,6 +93,14 @@ namespace HopInLine.Data.Line
 		/// <param name="manageToken">The line's management token.</param>
 		/// <param name="participantId">The ID of the participant to remove.</param>
 		Task RemoveParticipantAsync(string lineId, string manageToken, string participantId);
+
+		/// <summary>
+		/// Allows a participant to remove themselves from the line using their leave token.
+		/// </summary>
+		/// <param name="lineId">The ID of the line.</param>
+		/// <param name="participantId">The ID of the participant to remove.</param>
+		/// <param name="leaveToken">The participant's leave token for authorization.</param>
+		Task RemoveSelfAsync(string lineId, string participantId, string leaveToken);
 
 		/// <summary>
 		/// Re-adds a removed participant to the line. Requires valid manageToken.

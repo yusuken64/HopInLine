@@ -1,6 +1,21 @@
 @page "/start-line"
 @using HopInLine.Data.Line;
 
+<style>
+    .text-danger-token {
+        color: var(--color-danger);
+        font-weight: bold;
+    }
+
+    .manage-link-box {
+        background-color: var(--color-danger-bg);
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        border-left: 4px solid var(--color-danger-border);
+    }
+</style>
+
 <h1>Start a line</h1>
 
 <div>
@@ -41,12 +56,17 @@
                step="1" />
         @if (!string.IsNullOrEmpty(intervalValidationMessage))
         {
-            <small style="color: red;">@intervalValidationMessage</small>
+            <small class="text-danger-token">@intervalValidationMessage</small>
         }
     </div>
     <div class="form-group">
         <label for="autoReAdd">Auto Re-Add:</label>
         <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
+    </div>
+
+    <div class="form-group">
+        <label for="ownerEmail">Your email (optional):</label>
+        <input type="email" id="ownerEmail" @bind="ownerEmail" class="form-control" placeholder="Get a backup of your links by email" />
     </div>
 
     <button @onclick="CreateLine" class="btn btn-success">Create Line</button>
@@ -60,13 +80,17 @@ else
         <div style="background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px;">
             <strong>Share this link:</strong><br />
             <code>@shareLink</code>
+            <button @onclick="CopyShareLink" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy")</button>
         </div>
 
-        <p style="color: red; font-weight: bold;">Keep this link safe — anyone with it can manage your line:</p>
-        <div style="background-color: #ffe6e6; padding: 10px; margin: 10px 0; border-radius: 4px; border-left: 4px solid red;">
+        <p class="text-danger-token">Keep this link safe — anyone with it can manage your line:</p>
+        <div class="manage-link-box">
             <strong>Keep this link:</strong><br />
             <code>@manageLink</code>
+            <button @onclick="CopyManageLink" class="btn btn-secondary btn-sm">@(manageLinkCopied ? "Copied!" : "Copy")</button>
         </div>
+
+        <p>Anyone with this link has full control — share it with people you trust to help manage the line together.</p>
 
         <button @onclick="GoToManageLine" class="btn btn-primary">Go to my line</button>
     </div>
@@ -79,17 +103,22 @@ else
     private OverlayService OverlayService { get; set; } = null!;
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject]
+    private IJSRuntime JS { get; set; } = null!;
 
     private string lineName = string.Empty;
     private string description = string.Empty;
     private bool autoAdvanceLine;
     private int autoAdvanceMinutes;
     private bool autoReAdd;
+    private string ownerEmail = string.Empty;
     private string errorMessage = string.Empty;
     private string intervalValidationMessage = string.Empty;
     private string? createdLineId = null;
     private string shareLink = string.Empty;
     private string manageLink = string.Empty;
+    private bool shareLinkCopied = false;
+    private bool manageLinkCopied = false;
 
     private async Task CreateLine()
     {
@@ -117,7 +146,8 @@ else
                 description,
                 autoReAdd,
                 autoAdvanceLine,
-                TimeSpan.FromMinutes(autoAdvanceMinutes));
+                TimeSpan.FromMinutes(autoAdvanceMinutes),
+                string.IsNullOrWhiteSpace(ownerEmail) ? null : ownerEmail);
 
             if (newLine == null)
             {
@@ -130,6 +160,7 @@ else
             createdLineId = newLine.Id;
             shareLink = NavigationManager.ToAbsoluteUri($"/view-line/{newLine.Id}").ToString();
             manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
+            await JS.InvokeVoidAsync("hopInLine.saveRecentLine", new { lineId = newLine.Id, name = newLine.Name, role = "manage", link = manageLink });
             OverlayService.HideOverlay();
         }
         catch (ArgumentOutOfRangeException ex)
@@ -166,5 +197,25 @@ else
     {
         // Navigate back to the home page or previous page
         NavigationManager.NavigateTo("/");
+    }
+
+    private async Task CopyShareLink()
+    {
+        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", shareLink);
+        if (success)
+        {
+            shareLinkCopied = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyManageLink()
+    {
+        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", manageLink);
+        if (success)
+        {
+            manageLinkCopied = true;
+            StateHasChanged();
+        }
     }
 }
