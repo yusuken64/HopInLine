@@ -1,0 +1,475 @@
+Lightweight Session-Based Voting & Planning Tool
+Architecture Assumptions and Design Notes
+Purpose
+
+Create a collaborative web application similar to BreadBox that emphasizes:
+
+Zero-account onboarding
+Fast session creation
+Easy participant joining
+Real-time collaboration
+Resilience to refreshes and disconnects
+Minimal user friction
+
+This document captures architectural assumptions inferred from observing the BreadBox user experience and translates them into a design suitable for implementing a similar system.
+
+UX Principles
+Core Goals
+
+A user should be able to:
+
+Create a session in under 30 seconds.
+Share a link with participants.
+Have participants join without creating accounts.
+Collaboratively vote, estimate, or prioritize.
+Recover from refreshes and temporary disconnects.
+Export results when finished.
+Explicit Non-Goals
+Long-term user profiles
+Enterprise identity management
+Persistent user workspaces
+Complex permissions
+
+The system is optimized for ad-hoc collaboration.
+
+User Flow
+Host Flow
+Plain Text
+Create Session
+↓
+Provide Session Metadata
+↓
+Add Initial Tasks (optional)
+↓
+Create Room
+↓
+Receive Join Link
+↓
+Invite Participants
+↓
+Run Session
+Participant Flow
+Plain Text
+Receive Link
+↓
+Enter Name
+↓
+Join Session
+↓
+Vote / Observe
+Session Model
+Session
+TypeScript
+Session {
+id: UUID
+slug: string
+title: string
+description: string
+ 
+deckType: DeckType
+ 
+createdAt: Date
+updatedAt: Date
+ 
+status: Active | Finished | Archived
+ 
+hostParticipantId: UUID
+ 
+tasks: Task[]
+participants: Participant[]
+}
+Example
+JSON
+{
+"id": "a91f...",
+"slug": "lunch-vote-9274",
+"title": "Lunch Vote",
+"description": "Best Pizza"
+}
+Human-Friendly URLs
+
+Use human-readable slugs.
+
+Example:
+
+Plain Text
+/session/lunch-vote-9274
+
+Invitation:
+
+Plain Text
+/join/lunch-vote-9274
+ 
+
+Advantages:
+
+Easy to copy
+Easy to communicate verbally
+Easy to recognize
+Participant Model
+TypeScript
+Participant {
+id: UUID
+ 
+name: string
+ 
+role:
+| ScrumMaster
+| ProductOwner
+| Developer
+| Designer
+| Stakeholder
+| Custom
+ 
+mode:
+| Observer
+| Player
+ 
+joinedAt: Date
+}
+
+Important:
+
+Plain Text
+name != identity
+
+Names are display-only.
+
+System identity should be a UUID.
+
+Room Identity
+
+Session ownership should not depend on a browser tab.
+
+Bad:
+
+Plain Text
+Host Browser
+↓
+Owns Session
+
+If host closes browser:
+
+Plain Text
+Session Dies
+
+Good:
+
+Plain Text
+Database
+↓
+Owns Session
+
+Host becomes merely another participant with elevated permissions.
+
+Reconnection Strategy
+Participant ID
+
+Generate:
+
+TypeScript
+participantId = UUID()
+
+Store in:
+
+Plain Text
+localStorage
+
+Example:
+
+JavaScript
+localStorage.setItem(
+"participantId",
+uuid
+);
+ 
+On Reload
+Plain Text
+Page Refresh
+↓
+Read participantId
+↓
+Reconnect
+↓
+Restore User State
+
+Expected result:
+
+Plain Text
+User appears continuous
+On Network Disconnect
+Plain Text
+Connection Lost
+↓
+WebSocket Drops
+↓
+Retry Connect
+↓
+Reconnect Participant
+
+Participant should remain in the room.
+
+Session Recovery
+Local Recovery
+
+Store:
+
+Plain Text
+participantId
+sessionId
+
+in browser storage.
+
+This allows:
+
+Plain Text
+Refresh
+Close Browser
+Reopen Browser
+
+to recover the session.
+
+Session Recents
+
+Optional enhancement:
+
+TypeScript
+RecentSession {
+sessionId
+slug
+title
+}
+``
+
+Store recent sessions locally.
+
+Plain Text
+Recent Sessions
+Lunch Vote
+Sprint Planning
+Workshop
+
+This eliminates lost-link issues.
+
+Joining a Session
+Join URL
+Plain Text
+/join/lunch-vote-9274
+
+Join flow:
+
+Plain Text
+Open Link
+↓
+Name Entry
+↓
+Join
+↓
+Connected
+
+No account required.
+
+Real-Time Communication
+Use WebSockets
+
+Recommended:
+
+Plain Text
+Client
+↔
+WebSocket
+↔
+Server
+
+Events:
+
+Plain Text
+Participant Joined
+Participant Left
+Vote Submitted
+Vote Revealed
+Task Changed
+Task Added
+Task Deleted
+Task Model
+TypeScript
+Task {
+id: UUID
+ 
+title: string
+ 
+estimate?: string
+ 
+notes?: string
+ 
+votes: Vote[]
+}
+
+Example:
+
+JSON
+{
+"title": "pep"
+}
+Voting Model
+TypeScript
+Vote {
+taskId
+participantId
+value
+}
+ 
+
+Before reveal:
+
+Plain Text
+Hidden
+
+After reveal:
+
+Plain Text
+Visible
+Anti-Abuse Philosophy
+
+This type of application normally operates in a trusted environment:
+
+Plain Text
+Coworkers
+Team Members
+Workshop Participants
+
+Therefore moderate protections are sufficient.
+
+Recommended Protections
+Internal IDs
+Plain Text
+UUID
+
+instead of names.
+
+Vote Locking
+
+Prevent changing votes after reveal.
+
+Host Controls
+
+Allow host to:
+
+Plain Text
+Remove Participant
+Promote Participant
+Demote Participant
+Connection Rate Limits
+
+Prevent:
+
+Plain Text
+Join Spam
+Reconnect Spam
+Security Considerations
+Session Slugs
+
+Avoid predictable identifiers:
+
+Bad:
+
+Plain Text
+session-1
+session-2
+session-3
+
+Better:
+
+Plain Text
+lunch-vote-9274
+
+Best:
+
+Plain Text
+lunch-vote-k7x4f2
+
+Use enough entropy to prevent casual guessing.
+
+Persistence Strategy
+
+Store all critical state server-side.
+
+Persist
+Plain Text
+Session
+Tasks
+Participants
+Votes
+Current Task
+
+Do NOT rely exclusively on:
+
+Plain Text
+Browser Memory
+Session Lifecycle
+Active
+Plain Text
+Voting In Progress
+Completed
+Plain Text
+Export Available
+Expired
+Plain Text
+Inactive For X Days
+
+Example:
+
+Plain Text
+Delete after 30 days
+Recommended Tech Stack
+
+Frontend
+
+Plain Text
+Angular
+React
+Vue
+
+Backend
+
+Plain Text
+ASP.NET Core
+Node.js
+
+Real-Time
+
+Plain Text
+SignalR
+Socket.IO
+WebSockets
+
+Storage
+
+Plain Text
+PostgreSQL
+SQL Server
+
+Browser Storage
+
+Plain Text
+localStorage
+Design Summary
+
+The ideal system is:
+
+Plain Text
+Accountless
+Link-Based
+Real-Time
+Reconnect-Friendly
+Host-Independent
+Server-Persisted
+
+Key principles:
+
+Session owns the state.
+Participants are identified by UUIDs.
+Join links are the primary sharing mechanism.
+Refreshes and disconnects should be invisible to users.
+Session data is persisted server-side.
+Lightweight collaboration is prioritized over strict security and identity management.

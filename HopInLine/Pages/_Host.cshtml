@@ -5,4 +5,5 @@
     Layout = "_Layout";
 }
 
-<component type="typeof(App)" render-mode="Server" />
+@* The client IP is captured here because HttpContext is not reliably available inside a Blazor circuit *@
+<component type="typeof(App)" render-mode="Server" param-ClientIp="@(HttpContext.Connection.RemoteIpAddress?.ToString())" />

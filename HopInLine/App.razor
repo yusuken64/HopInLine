@@ -10,3 +10,21 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    [Inject]
+    private HopInLine.Data.Line.ClientContext ClientContext { get; set; } = null!;
+
+    /// <summary>Remote IP from the initial HTTP request (see _Host.cshtml), used for per-IP rate limits.</summary>
+    [Parameter]
+    public string? ClientIp { get; set; }
+
+    // Runs before any page initializes, so every service call in this circuit sees the IP
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(ClientIp))
+        {
+            ClientContext.ClientIp = ClientIp;
+        }
+    }
+}

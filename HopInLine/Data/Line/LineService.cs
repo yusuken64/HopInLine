@@ -12,16 +12,22 @@ namespace HopInLine.Data.Line
         private readonly ILineChangeNotifier _notifier;
         private readonly ILineOwnerNotifier _ownerNotifier;
         private readonly IEmailRateLimiter _rateLimiter;
+        private readonly IActionRateLimiter? _actionRateLimiter;
+        private readonly ClientContext _client;
 
         public LineService(ILineRepository lineRepository,
             ILineChangeNotifier notifier,
             ILineOwnerNotifier ownerNotifier,
-            IEmailRateLimiter rateLimiter)
+            IEmailRateLimiter rateLimiter,
+            IActionRateLimiter? actionRateLimiter = null,
+            ClientContext? client = null)
         {
             _lineRepository = lineRepository;
             _notifier = notifier;
             _ownerNotifier = ownerNotifier;
             _rateLimiter = rateLimiter;
+            _actionRateLimiter = actionRateLimiter;
+            _client = client ?? new ClientContext();
         }
 
         /// <summary>
@@ -31,6 +37,7 @@ namespace HopInLine.Data.Line
         /// </summary>
         private async Task<Line> AuthorizeAsync(string lineId, string manageToken)
         {
+            Throttle(RateLimitedAction.Write);
             lineId = IdGenerator.NormalizeId(lineId);
 
             var line = await _lineRepository.GetLineAsync(lineId);
@@ -47,6 +54,18 @@ namespace HopInLine.Data.Line
             }
 
             return line;
+        }
+
+        /// <summary>
+        /// Per-client rate limit, checked at the top of every public method that touches the database.
+        /// Throws <see cref="RateLimitExceededException"/> when the caller is over its budget.
+        /// </summary>
+        private void Throttle(RateLimitedAction action)
+        {
+            if (_actionRateLimiter != null && !_actionRateLimiter.TryConsume(action, _client))
+            {
+                throw new RateLimitExceededException("You're doing that too fast — please wait a moment and try again.");
+            }
         }
 
         /// <summary>
@@ -79,6 +98,7 @@ namespace HopInLine.Data.Line
         /// </summary>
         public async Task<LineDto?> GetLineAsync(string lineId)
         {
+            Throttle(RateLimitedAction.Read);
             lineId = IdGenerator.NormalizeId(lineId);
             var line = await _lineRepository.GetLineAsync(lineId);
             if (line == null)
@@ -97,6 +117,8 @@ namespace HopInLine.Data.Line
         public async Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
             bool autoAdvanceLine, TimeSpan autoAdvanceInterval, string? ownerEmail = null)
         {
+            Throttle(RateLimitedAction.Create);
+
             // Server-side length enforcement
             if (string.IsNullOrEmpty(name) || name.Length > 100)
             {
@@ -178,8 +200,9 @@ namespace HopInLine.Data.Line
         /// Builds the Participant server-side via ParticipantFactory.Create(...).
         /// Never accepts a caller-supplied Participant.
         /// </summary>
-        public async Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName)
+        public async Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName, string? manageToken = null)
         {
+            Throttle(RateLimitedAction.Write);
             lineId = IdGenerator.NormalizeId(lineId);
 
             // Validate name: reject null, whitespace-only, or over-60-character names
@@ -197,6 +220,14 @@ namespace HopInLine.Data.Line
             if (line == null)
             {
                 throw new KeyNotFoundException();
+            }
+
+            // Abuse limit: throttle joins per line
+            // Managers adding people (valid token) are exempt
+            var isManager = !string.IsNullOrEmpty(manageToken) && FixedTimeCompare(line.ManageToken, manageToken);
+            if (!isManager && _actionRateLimiter != null && !_actionRateLimiter.TryConsumeJoin(lineId))
+            {
+                throw new RateLimitExceededException("Lots of people are joining right now — please try again in a moment.");
             }
 
             // Abuse limit: participant cap at 200
@@ -338,6 +369,7 @@ namespace HopInLine.Data.Line
         /// </summary>
         public async Task RemoveSelfAsync(string lineId, string participantId, string leaveToken)
         {
+            Throttle(RateLimitedAction.Write);
             lineId = IdGenerator.NormalizeId(lineId);
 
             var line = await _lineRepository.GetLineAsync(lineId);
@@ -428,6 +460,8 @@ namespace HopInLine.Data.Line
         /// </summary>
         public async Task<bool> ValidateManageTokenAsync(string lineId, string manageToken)
         {
+            // Outside the try: a throttled caller must get an error, not a silent "invalid token"
+            Throttle(RateLimitedAction.Read);
             try
             {
                 lineId = IdGenerator.NormalizeId(lineId);

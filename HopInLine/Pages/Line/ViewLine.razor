@@ -22,13 +22,20 @@ else
 		<div>
 			<h1 style="margin: 0;">@line.Name</h1>
 
-			@if (!string.IsNullOrEmpty(myParticipantId))
+			<div class="share-bar">
+				<span>Invite: <code>@ShareLink</code></span>
+				<button @onclick="CopyShareLink" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
+				<span class="text-muted">or code <strong>@line.Id</strong></span>
+			</div>
+
+			@if (canManage)
 			{
-				<div class="alert alert-info" role="alert">
-					You're in this line.
-					<button @onclick="LeaveLine" disabled="@busy">Leave line</button>
-				</div>
+				<p class="text-muted" style="margin: 0;">
+					You're managing this line. Bookmark this page — this URL is the only way back in as manager.
+					<button @onclick="CopyManageLink" class="btn btn-link btn-sm">@(manageLinkCopied ? "Copied!" : "Copy manage link")</button>
+				</p>
 			}
+
 
 			@if (!string.IsNullOrEmpty(errorMessage))
 			{
@@ -148,16 +155,50 @@ else
 		</div>
 
 		<div class="toolbar">
-			<div class="toolbar-input">
-				<input @bind="newParticipant" placeholder="Enter participant name" class="form-control" disabled="@busy" />
-				<button @onclick="AddParticipant" class="btn btn-success" disabled="@busy">Add</button>
+			<div class="toolbar-me">
+				<span>
+					You're <strong>@(myName ?? "...")</strong>
+					<button @onclick="OpenNamePrompt" class="btn btn-link btn-sm">change</button>
+				</span>
+				@if (MyPosition is int position)
+				{
+					<span>— #@position in line</span>
+					<button @onclick="LeaveLine" class="btn btn-secondary" disabled="@busy">Leave line</button>
+				}
+				else
+				{
+					<button @onclick="JoinLine" class="btn btn-success" disabled="@(busy || myName is null)">Hop in line</button>
+				}
 			</div>
 			@if (canManage)
 			{
-				<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
+				<div class="toolbar-input">
+					<input @bind="newParticipant" placeholder="Add someone else" maxlength="60" class="form-control" disabled="@busy" />
+					<button @onclick="AddOther" class="btn btn-outline-success" disabled="@busy">Add</button>
+					<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
+				</div>
 			}
 		</div>
 	</div>
+
+	@if (showNamePrompt)
+	{
+		<div class="name-prompt-backdrop">
+			<form class="name-prompt" role="dialog" aria-modal="true" aria-labelledby="name-prompt-title"
+				  @onsubmit="SaveName" @onsubmit:preventDefault>
+				<h2 id="name-prompt-title">What's your name?</h2>
+				<p class="text-muted">Shown to others when you're in line. Leave blank to be a guest.</p>
+				<input @bind="nameInput" class="form-control" maxlength="60" placeholder="Guest" autofocus />
+				<div class="name-prompt-actions">
+					@if (myName is not null)
+					{
+						<button type="button" @onclick="() => showNamePrompt = false" class="btn btn-secondary">Cancel</button>
+					}
+					<button type="submit" class="btn btn-primary">Continue</button>
+				</div>
+			</form>
+		</div>
+	}
 }
 
 @code {
@@ -192,6 +233,29 @@ else
 	private string? myParticipantId;
 	private string? myLeaveToken;
 	private bool _hasSavedRecentLine;
+	private bool shareLinkCopied;
+	private bool manageLinkCopied;
+
+	// Browser-remembered identity: the display name is shared across lines; participation is per line
+	private string? myName;
+	private string? nameInput;
+	private bool showNamePrompt;
+
+	/// <summary>1-based place in line, or null if this browser's participant isn't actively in line.</summary>
+	private int? MyPosition
+	{
+		get
+		{
+			if (line is null || myParticipantId is null)
+			{
+				return null;
+			}
+			var index = line.Participants.OrderBy(p => p.Position).ToList().FindIndex(p => p.Id == myParticipantId);
+			return index < 0 ? null : index + 1;
+		}
+	}
+
+	private string ShareLink =>NavigationManager.ToAbsoluteUri($"/view-line/{LineId}").ToString();
 
 	private class MyParticipation
 	{
@@ -240,6 +304,12 @@ else
 		await InvokeAsync(() =>
 		{
 			line = dto;
+			// Advanced off the line (or removed by the manager): offer "Hop in line" again
+			if (myParticipantId is not null && !dto.Participants.Any(p => p.Id == myParticipantId))
+			{
+				myParticipantId = null;
+				myLeaveToken = null;
+			}
 			StateHasChanged();
 		});
 	}
@@ -259,13 +329,21 @@ else
 					link = NavigationManager.Uri
 				});
 
+				myName = await JS.InvokeAsync<string?>("hopInLine.getDisplayName");
+				if (string.IsNullOrWhiteSpace(myName))
+				{
+					myName = null;
+					OpenNamePrompt();
+				}
+
+				// Restore "who am I in this line" after refresh / reopening the browser
 				var participation = await JS.InvokeAsync<MyParticipation?>("hopInLine.getMyParticipation", LineId);
 				if (participation is not null && line.Participants.Any(p => p.Id == participation.ParticipantId))
 				{
 					myParticipantId = participation.ParticipantId;
 					myLeaveToken = participation.LeaveToken;
-					StateHasChanged();
 				}
+				StateHasChanged();
 			}
 			catch
 			{
@@ -314,7 +392,68 @@ else
 		return "Loading...";
 	}
 
-	private async Task AddParticipant()
+	private void OpenNamePrompt()
+	{
+		nameInput = myName;
+		showNamePrompt = true;
+	}
+
+	private async Task SaveName()
+	{
+		// Blank is fine — the user becomes a guest
+		myName = string.IsNullOrWhiteSpace(nameInput)
+			? $"Guest {Random.Shared.Next(100, 1000)}"
+			: nameInput.Trim();
+		showNamePrompt = false;
+		try
+		{
+			await JS.InvokeVoidAsync("hopInLine.saveDisplayName", myName);
+		}
+		catch
+		{
+			// JS interop unavailable — the name lasts for this session only
+		}
+	}
+
+	private async Task JoinLine()
+	{
+		if (myName is null)
+		{
+			OpenNamePrompt();
+			return;
+		}
+
+		await AddParticipant(myName, async result =>
+		{
+			myParticipantId = result.ParticipantId;
+			myLeaveToken = result.LeaveToken;
+			try
+			{
+				await JS.InvokeVoidAsync("hopInLine.saveMyParticipation", LineId, result.ParticipantId, result.LeaveToken);
+			}
+			catch
+			{
+				// JS interop unavailable — the leave button will still work this session via in-memory state
+			}
+		});
+	}
+
+	private async Task AddOther()
+	{
+		if (string.IsNullOrWhiteSpace(newParticipant))
+		{
+			return;
+		}
+
+		// Someone else added by the manager — not this browser's identity
+		await AddParticipant(newParticipant.Trim(), _ =>
+		{
+			newParticipant = string.Empty;
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task AddParticipant(string name, Func<ParticipantJoinResult, Task> onAdded)
 	{
 		if (line is null)
 		{
@@ -325,21 +464,8 @@ else
 		errorMessage = null;
 		try
 		{
-			if (!string.IsNullOrWhiteSpace(newParticipant))
-			{
-				var result = await LineService.AddParticipantAsync(LineId, newParticipant);
-				newParticipant = string.Empty;
-				myParticipantId = result.ParticipantId;
-				myLeaveToken = result.LeaveToken;
-				try
-				{
-					await JS.InvokeVoidAsync("hopInLine.saveMyParticipation", LineId, result.ParticipantId, result.LeaveToken);
-				}
-				catch
-				{
-					// JS interop unavailable — the leave button will still work this session via in-memory state
-				}
-			}
+			var result = await LineService.AddParticipantAsync(LineId, name, ManageToken);
+			await onAdded(result);
 		}
 		catch (ArgumentException ex)
 		{
@@ -526,6 +652,16 @@ else
 		{
 			busy = false;
 		}
+	}
+
+	private async Task CopyShareLink()
+	{
+		shareLinkCopied = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", ShareLink);
+	}
+
+	private async Task CopyManageLink()
+	{
+		manageLinkCopied = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", NavigationManager.Uri);
 	}
 
 	private async Task LeaveLine()

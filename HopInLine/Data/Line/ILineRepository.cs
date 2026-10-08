@@ -19,5 +19,7 @@
 		Task RestartTimerAsync(string lineId);
 		Task<IReadOnlyList<string>> GetDueLineIdsAsync(DateTime utcNow, CancellationToken cancellationToken);
 		Task<bool> TryAdvanceAsync(string lineId);
+		/// <summary>Deletes lines (and their participants) with no user activity since <paramref name="cutoffUtc"/>. Returns the number deleted.</summary>
+		Task<int> DeleteLinesIdleSinceAsync(DateTime cutoffUtc, CancellationToken cancellationToken);
 	}
 }

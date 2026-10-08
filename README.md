@@ -7,7 +7,19 @@ A line has two URLs with different privileges:
 - **`/view-line/{id}`** — share this. Anyone with this URL can see the queue and join it. They cannot advance, reorder, remove, edit, or delete.
 - **`/manage/{id}/{token}`** — keep this. Anyone with it has full control of the line.
 
-**Important:** The manage token is shown **once**, when the line is created, and cannot be recovered. There are no accounts to authenticate against, so there is no recovery process. Copy the manage link and store it somewhere safe before leaving the page — losing it means losing control of the line.
+**Start A Line** walks through four short steps: line info and type, your info, initial people, and invite links. Every field is optional, so clicking Next all the way through still gives you a working line. Settings can be changed later from **Edit**. Joining needs no info either: a blank name joins as a guest, and the last name you used is remembered in the browser.
+
+**Important:** The manage link is saved in your browser's recent lines, but there are no accounts, so it can't be recovered if you lose it on that browser. Bookmark it or copy it from the manage page.
+
+## Abuse Protection
+
+- **Rate limits.** Every call that touches the server is limited:
+  - Per IP on all HTTP requests (300/min), which covers page loads and new connections.
+  - Per browser tab and per IP inside the app, for creating lines, any change, and loads or token checks.
+  - Per line on joins (20/min). Managers adding people are exempt.
+
+  Limits are in memory, so each server instance counts separately.
+- **Idle-line cleanup.** Lines with no user activity for 30 days are deleted. Set `LineRetention:IdleDays` to change that. Background auto-advance doesn't count as activity.
 
 ## Running Locally
 

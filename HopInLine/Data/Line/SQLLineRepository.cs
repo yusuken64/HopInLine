@@ -320,9 +320,19 @@ namespace HopInLine.Data.Line
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<int> DeleteLinesIdleSinceAsync(DateTime cutoffUtc, CancellationToken cancellationToken)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+            // Participants are removed by the database cascade on the LineId foreign key
+            return await context.Lines
+                .Where(l => l.LastUpdated < cutoffUtc)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
         public async Task<bool> TryAdvanceAsync(string lineId)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
+            context.PreserveLastUpdated = true; // auto-advance is not user activity
             using var transaction = await context.Database.BeginTransactionAsync();
 
             try

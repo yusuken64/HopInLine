@@ -133,6 +133,20 @@ window.hopInLine = (function() {
             }
         },
 
+        saveDisplayName: function(name) {
+            try {
+                window.localStorage.setItem("hopinline.displayName", name);
+            } catch (e) {}
+        },
+
+        getDisplayName: function() {
+            try {
+                return window.localStorage.getItem("hopinline.displayName");
+            } catch (e) {
+                return null;
+            }
+        },
+
         copyToClipboard: function(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 return navigator.clipboard.writeText(text).then(function() {

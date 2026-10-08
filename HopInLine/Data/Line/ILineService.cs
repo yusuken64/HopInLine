@@ -37,8 +37,9 @@ namespace HopInLine.Data.Line
 		/// </summary>
 		/// <param name="lineId">The ID of the line.</param>
 		/// <param name="participantName">The name of the participant to add.</param>
+		/// <param name="manageToken">Optional. A valid manage token exempts the call from the per-line join rate limit (managers adding people).</param>
 		/// <returns>The <see cref="ParticipantJoinResult"/> containing the participant ID and leave token.</returns>
-		Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName);
+		Task<ParticipantJoinResult> AddParticipantAsync(string lineId, string participantName, string? manageToken = null);
 
 		/// <summary>
 		/// Updates a line's settings. Requires valid manageToken.

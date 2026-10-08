@@ -1,221 +1,295 @@
 @page "/start-line"
 @using HopInLine.Data.Line;
 
-<style>
-    .text-danger-token {
-        color: var(--color-danger);
-        font-weight: bold;
-    }
+@* Multi-step setup. Every field is optional — clicking Next through every step still creates a working line.
+   The line is created when leaving step 3, so steps 1–3 can go Back freely. *@
 
-    .manage-link-box {
-        background-color: var(--color-danger-bg);
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 4px;
-        border-left: 4px solid var(--color-danger-border);
-    }
-</style>
+<div class="wizard">
+    <h1 class="wizard-title">Before we start</h1>
 
-<h1>Start a line</h1>
-
-<div>
-    <p>To start a new line, please enter the following details:</p>
-</div>
-
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger" role="alert">@errorMessage</div>
-}
-
-@if (createdLineId == null)
-{
-    <div class="form-group">
-        <label for="lineName">Line Name:</label>
-        <input type="text" id="lineName" @bind="lineName" class="form-control" placeholder="Enter line name" />
-    </div>
-
-    <div class="form-group">
-        <label for="description">Description:</label>
-        <textarea id="description" @bind="description" class="form-control" placeholder="Enter description"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label for="autoAdvanceLine">Auto-Advance Line:</label>
-        <input type="checkbox" id="autoAdvanceLine" @bind="autoAdvanceLine" class="form-check-input" />
-    </div>
-
-    <div class="form-group">
-        <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
-        <input type="number"
-               id="autoAdvanceMinutes"
-               @bind="autoAdvanceMinutes"
-               class="form-control"
-               disabled="@(autoAdvanceLine ? false : true)"
-               min="1"
-               max="1440"
-               step="1" />
-        @if (!string.IsNullOrEmpty(intervalValidationMessage))
+    <ol class="wizard-steps">
+        @for (int i = 0; i < StepNames.Length; i++)
         {
-            <small class="text-danger-token">@intervalValidationMessage</small>
+            var n = i + 1;
+            <li class="@(n == step ? "active" : n < step ? "done" : "")">
+                <span class="wizard-step-number">@n</span>
+                <span class="wizard-step-label">@StepNames[i]</span>
+            </li>
         }
-    </div>
-    <div class="form-group">
-        <label for="autoReAdd">Auto Re-Add:</label>
-        <input type="checkbox" id="autoReAdd" @bind="autoReAdd" class="form-check-input" />
-    </div>
+    </ol>
 
-    <div class="form-group">
-        <label for="ownerEmail">Your email (optional):</label>
-        <input type="email" id="ownerEmail" @bind="ownerEmail" class="form-control" placeholder="Get a backup of your links by email" />
-    </div>
+    <div class="wizard-card">
+        @if (step < 4)
+        {
+            <a href="/" class="wizard-exit">Exit</a>
+        }
 
-    <button @onclick="CreateLine" class="btn btn-success">Create Line</button>
-    <button @onclick="Cancel" class="btn btn-danger">Cancel</button>
-}
-else
-{
-    <div class="alert alert-success" role="alert">
-        <h2>Your line has been created!</h2>
-        <p>Share this link with people who want to join the queue:</p>
-        <div style="background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px;">
-            <strong>Share this link:</strong><br />
-            <code>@shareLink</code>
-            <button @onclick="CopyShareLink" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy")</button>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
+        }
+
+        @switch (step)
+        {
+            case 1:
+                <h2>Tell us about this line</h2>
+                <div class="form-group">
+                    <label for="lineName">Line name</label>
+                    <input id="lineName" @bind="lineName" class="form-control" maxlength="100" placeholder="@DefaultLineName" />
+                </div>
+                <div class="form-group">
+                    <label for="description">Description (optional)</label>
+                    <input id="description" @bind="description" class="form-control" maxlength="500" placeholder="What's this line for?" />
+                </div>
+
+                <h2>How should it run?</h2>
+                <div class="wizard-options">
+                    @foreach (var option in LineTypes)
+                    {
+                        <button type="button"
+                                class="wizard-option @(lineType == option.Type ? "selected" : "")"
+                                aria-pressed="@(lineType == option.Type)"
+                                @onclick="() => lineType = option.Type">
+                            <span class="wizard-option-icon" aria-hidden="true">@option.Icon</span>
+                            <strong>@option.Title</strong>
+                            <span>@option.Blurb</span>
+                        </button>
+                    }
+                </div>
+
+                @if (lineType != LineType.Simple)
+                {
+                    <div class="form-group">
+                        <label for="interval">Minutes per turn</label>
+                        <input id="interval" type="number" @bind="intervalMinutes" class="form-control" min="1" max="1440" step="1" />
+                    </div>
+                }
+                break;
+
+            case 2:
+                <h2>Tell us about you</h2>
+                <div class="form-group">
+                    <label for="yourName">Your name (optional)</label>
+                    <input id="yourName" @bind="yourName" class="form-control" maxlength="60" placeholder="Guest" />
+                </div>
+                <div class="wizard-options">
+                    <button type="button" class="wizard-option @(joinSelf ? "selected" : "")" aria-pressed="@joinSelf" @onclick="() => joinSelf = true">
+                        <span class="wizard-option-icon" aria-hidden="true">🙋</span>
+                        <strong>I'm in line</strong>
+                        <span>Add me as the first person.</span>
+                    </button>
+                    <button type="button" class="wizard-option @(!joinSelf ? "selected" : "")" aria-pressed="@(!joinSelf)" @onclick="() => joinSelf = false">
+                        <span class="wizard-option-icon" aria-hidden="true">📋</span>
+                        <strong>Just managing</strong>
+                        <span>I'll run the line but won't take a turn.</span>
+                    </button>
+                </div>
+                break;
+
+            case 3:
+                <h2>Who's in line?</h2>
+                <p class="text-muted">(One name per line)</p>
+                <textarea @bind="initialPeople" class="form-control" rows="8"></textarea>
+                <p class="wizard-hint">You can always add people later.</p>
+                break;
+
+            case 4:
+                <h2>Invite people</h2>
+                <p>Share this link — anyone with it can join:</p>
+                <div class="wizard-link">
+                    <code>@shareLink</code>
+                    <button @onclick="() => Copy(shareLink, true)" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
+                </div>
+                <p>Or tell them the code <strong>@createdLineId</strong>.</p>
+
+                <p class="text-danger-token">Keep this link — it's the only way to manage the line:</p>
+                <div class="wizard-link wizard-link-danger">
+                    <code>@manageLink</code>
+                    <button @onclick="() => Copy(manageLink, false)" class="btn btn-secondary btn-sm">@(manageLinkCopied ? "Copied!" : "Copy")</button>
+                </div>
+                break;
+        }
+
+        <div class="wizard-actions">
+            @if (step > 1 && step < 4)
+            {
+                <button @onclick="() => step--" class="btn btn-secondary" disabled="@busy">Back</button>
+            }
+            @if (step < 3)
+            {
+                <button @onclick="Next" class="btn btn-warning btn-lg">Next</button>
+            }
+            else if (step == 3)
+            {
+                <button @onclick="CreateLine" class="btn btn-warning btn-lg" disabled="@busy">Create line</button>
+            }
+            else
+            {
+                <button @onclick="() => NavigationManager.NavigateTo(manageLink)" class="btn btn-warning btn-lg">Go to my line</button>
+            }
         </div>
-
-        <p class="text-danger-token">Keep this link safe — anyone with it can manage your line:</p>
-        <div class="manage-link-box">
-            <strong>Keep this link:</strong><br />
-            <code>@manageLink</code>
-            <button @onclick="CopyManageLink" class="btn btn-secondary btn-sm">@(manageLinkCopied ? "Copied!" : "Copy")</button>
-        </div>
-
-        <p>Anyone with this link has full control — share it with people you trust to help manage the line together.</p>
-
-        <button @onclick="GoToManageLine" class="btn btn-primary">Go to my line</button>
     </div>
-}
+</div>
 
 @code {
     [Inject]
     private ILineService LineService { get; set; } = null!;
     [Inject]
-    private OverlayService OverlayService { get; set; } = null!;
-    [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
     [Inject]
     private IJSRuntime JS { get; set; } = null!;
 
-    private string lineName = string.Empty;
-    private string description = string.Empty;
-    private bool autoAdvanceLine;
-    private int autoAdvanceMinutes;
-    private bool autoReAdd;
-    private string ownerEmail = string.Empty;
-    private string errorMessage = string.Empty;
-    private string intervalValidationMessage = string.Empty;
-    private string? createdLineId = null;
-    private string shareLink = string.Empty;
-    private string manageLink = string.Empty;
-    private bool shareLinkCopied = false;
-    private bool manageLinkCopied = false;
+    private enum LineType { Simple, Timed, Rotation }
 
-    private async Task CreateLine()
+    private record LineTypeOption(LineType Type, string Icon, string Title, string Blurb);
+
+    private static readonly string[] StepNames = ["Line information", "Your information", "People", "Invite"];
+
+    private static readonly LineTypeOption[] LineTypes =
+    [
+        new(LineType.Simple, "➡️", "Simple queue", "Advance by hand when someone's done."),
+        new(LineType.Timed, "⏱️", "Timed turns", "Auto-advance after a set time."),
+        new(LineType.Rotation, "🔁", "Rotation", "Timed turns; people rejoin the back after their turn."),
+    ];
+
+    private static string DefaultLineName => $"Line {DateTime.UtcNow:MMM d}";
+
+    private int step = 1;
+    private bool busy;
+    private string? errorMessage;
+
+    private string lineName = "";
+    private string description = "";
+    private LineType lineType = LineType.Simple;
+    private int intervalMinutes = 5;
+    private string yourName = "";
+    private bool joinSelf = true;
+    private string initialPeople = "";
+
+    private string? createdLineId;
+    private string shareLink = "";
+    private string manageLink = "";
+    private bool shareLinkCopied;
+    private bool manageLinkCopied;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        errorMessage = string.Empty;
-        intervalValidationMessage = string.Empty;
-
-        // Validate interval bounds
-        if (autoAdvanceLine && (autoAdvanceMinutes < 1 || autoAdvanceMinutes > 1440))
+        if (!firstRender)
         {
-            intervalValidationMessage = "Auto-Advance Interval must be between 1 and 1440 minutes.";
             return;
-        }
-
-        OverlayService.ShowOverlay();
-        if (string.IsNullOrWhiteSpace(lineName))
-        {
-            lineName = "New Line";
         }
 
         try
         {
-            // CreateLineAsync returns the new line with ManageToken populated (the creator gets the real token)
+            yourName = await JS.InvokeAsync<string?>("hopInLine.getDisplayName") ?? "";
+            StateHasChanged();
+        }
+        catch
+        {
+            // JS interop unavailable — leave blank
+        }
+    }
+
+    private void Next()
+    {
+        errorMessage = null;
+        if (step == 1 && lineType != LineType.Simple && (intervalMinutes < 1 || intervalMinutes > 1440))
+        {
+            errorMessage = "Minutes per turn must be between 1 and 1440.";
+            return;
+        }
+        step++;
+    }
+
+    private async Task CreateLine()
+    {
+        busy = true;
+        errorMessage = null;
+        try
+        {
+            var name = string.IsNullOrWhiteSpace(lineName) ? DefaultLineName : lineName.Trim();
             var newLine = await LineService.CreateLineAsync(
-                lineName,
-                description,
-                autoReAdd,
-                autoAdvanceLine,
-                TimeSpan.FromMinutes(autoAdvanceMinutes),
-                string.IsNullOrWhiteSpace(ownerEmail) ? null : ownerEmail);
+                name,
+                string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                autoReAdd: lineType == LineType.Rotation,
+                autoAdvanceLine: lineType != LineType.Simple,
+                // The interval is validated even when auto-advance is off
+                TimeSpan.FromMinutes(lineType == LineType.Simple ? 5 : intervalMinutes));
 
-            if (newLine == null)
-            {
-                errorMessage = "An error occurred while creating the line.";
-                OverlayService.HideOverlay();
-                return;
-            }
-
-            // Show the confirmation panel with both links
             createdLineId = newLine.Id;
             shareLink = NavigationManager.ToAbsoluteUri($"/view-line/{newLine.Id}").ToString();
             manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
-            await JS.InvokeVoidAsync("hopInLine.saveRecentLine", new { lineId = newLine.Id, name = newLine.Name, role = "manage", link = manageLink });
-            OverlayService.HideOverlay();
+
+            // Remember the line before adding people, so a failure below doesn't lose the manage link
+            await TryJs("hopInLine.saveRecentLine", new { lineId = newLine.Id, name, role = "manage", link = manageLink });
+
+            if (joinSelf)
+            {
+                var me = string.IsNullOrWhiteSpace(yourName) ? $"Guest {Random.Shared.Next(100, 1000)}" : yourName.Trim();
+                var result = await LineService.AddParticipantAsync(newLine.Id, me, newLine.ManageToken);
+                await TryJs("hopInLine.saveMyParticipation", newLine.Id, result.ParticipantId, result.LeaveToken);
+            }
+
+            if (!string.IsNullOrWhiteSpace(yourName))
+            {
+                await TryJs("hopInLine.saveDisplayName", yourName.Trim());
+            }
+
+            var people = initialPeople
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(p => p.Length > 0);
+            foreach (var person in people)
+            {
+                await LineService.AddParticipantAsync(newLine.Id, person.Length > 60 ? person[..60] : person, newLine.ManageToken);
+            }
+
+            step = 4;
         }
-        catch (ArgumentOutOfRangeException ex)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             errorMessage = ex.Message;
-            OverlayService.HideOverlay();
-        }
-        catch (InvalidOperationException ex)
-        {
-            errorMessage = ex.Message;
-            OverlayService.HideOverlay();
-        }
-        catch (ArgumentException ex)
-        {
-            errorMessage = ex.Message;
-            OverlayService.HideOverlay();
+            // If the line was created but adding people failed, still show the links
+            if (createdLineId is not null)
+            {
+                step = 4;
+            }
         }
         catch (Exception ex)
         {
             errorMessage = $"An unexpected error occurred: {ex.Message}";
-            OverlayService.HideOverlay();
+            if (createdLineId is not null)
+            {
+                step = 4;
+            }
+        }
+        finally
+        {
+            busy = false;
         }
     }
 
-    private void GoToManageLine()
+    private async Task Copy(string text, bool isShareLink)
     {
-        if (createdLineId != null)
+        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", text);
+        if (isShareLink)
         {
-            NavigationManager.NavigateTo(manageLink);
+            shareLinkCopied = success;
+        }
+        else
+        {
+            manageLinkCopied = success;
         }
     }
 
-    private void Cancel()
+    private async Task TryJs(string identifier, params object?[] args)
     {
-        // Navigate back to the home page or previous page
-        NavigationManager.NavigateTo("/");
-    }
-
-    private async Task CopyShareLink()
-    {
-        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", shareLink);
-        if (success)
+        try
         {
-            shareLinkCopied = true;
-            StateHasChanged();
+            await JS.InvokeVoidAsync(identifier, args);
         }
-    }
-
-    private async Task CopyManageLink()
-    {
-        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", manageLink);
-        if (success)
+        catch
         {
-            manageLinkCopied = true;
-            StateHasChanged();
+            // JS interop unavailable — these are convenience features only
         }
     }
 }

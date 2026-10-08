@@ -1,5 +1,7 @@
 using HopInLine.Data.Line;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +23,10 @@ builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
 builder.Services.AddSingleton<ILineOwnerNotifier, DebugLineOwnerNotifier>();
 builder.Services.AddSingleton<IEmailRateLimiter, InMemoryEmailRateLimiter>();
+builder.Services.AddSingleton<IActionRateLimiter, InMemoryActionRateLimiter>();
+builder.Services.AddScoped<ClientContext>();
 builder.Services.AddHostedService<LineAdvancementBackgroundService>();
+builder.Services.AddHostedService<LineCleanupBackgroundService>();
 
 builder.Services.AddScoped<OverlayService>();
 builder.Services.AddScoped<ConfirmService>();
@@ -35,6 +40,23 @@ var hasHttps = (!string.IsNullOrEmpty(httpsUrls) && httpsUrls.Contains("https"))
 // Configure ForwardedHeaders middleware
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
+
+// Per-IP limit on every HTTP request that reaches routing: page loads and Blazor connections.
+// Static files are served before routing and are not counted. In-app actions are limited in LineService.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueLimit = 0
+            }));
+});
 
 var app = builder.Build();
 
@@ -60,6 +82,8 @@ if (hasHttps)
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

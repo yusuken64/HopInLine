@@ -6,6 +6,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Line> Lines { get; set; }
     public DbSet<Participant> Participants { get; set; }
 
+    /// <summary>
+    /// When true, saves keep Line.LastUpdated as-is. Used for automatic changes (background auto-advance)
+    /// so LastUpdated reflects the last human activity, which drives idle-line cleanup.
+    /// </summary>
+    public bool PreserveLastUpdated { get; set; }
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
@@ -86,7 +92,10 @@ public class ApplicationDbContext : DbContext
 		foreach (var entry in entries)
 		{
 			entry.Entity.Version = Guid.NewGuid();
-			entry.Entity.LastUpdated = DateTime.UtcNow;
+			if (!PreserveLastUpdated)
+			{
+				entry.Entity.LastUpdated = DateTime.UtcNow;
+			}
 		}
 	}
 }
