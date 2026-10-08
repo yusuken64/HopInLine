@@ -59,10 +59,33 @@ The app will be at `http://localhost:5000` (or the URL shown in the console).
 
 3. Build and run:
    ```
-   docker compose up --build
+   docker compose up --build --force-recreate
    ```
+   `--force-recreate` replaces existing containers on every run so they always pick up the freshly built image. Named volumes (database data, data-protection keys) are preserved.
 
 The app will be at `http://localhost:8080` (note: the container runs as the non-root `app` user and listens on 8080, not 80).
+
+The compose file is for local use: it connects as `sa` with `TrustServerCertificate=True` because the SQL Server container uses a self-signed certificate. See [Deploying to Production](#deploying-to-production) for a real deployment.
+
+## Deploying to Production
+
+- **Database login.** Don't connect as `sa`. Create a dedicated login and give it only what the app needs:
+  ```sql
+  CREATE LOGIN hopinline_app WITH PASSWORD = '<strong password>';
+  USE hopinline;
+  CREATE USER hopinline_app FOR LOGIN hopinline_app;
+  ALTER ROLE db_datareader ADD MEMBER hopinline_app;
+  ALTER ROLE db_datawriter ADD MEMBER hopinline_app;
+  ```
+  Migrations need schema rights, so run them with a separate admin login (see below), or also add the app login to `db_ddladmin` if you keep migrate-on-startup.
+- **Database certificate.** Use a server with a trusted certificate and drop `TrustServerCertificate=True` from the connection string.
+- **Migrations.** By default the app applies migrations on startup. With more than one instance, set `Database__MigrateOnStartup=false` and run migrations as a deploy step, e.g. `dotnet ef migrations bundle --project HopInLine` and run the bundle with an admin connection string.
+- **Reverse proxy.** Forwarded headers (client IP, scheme) are trusted only from loopback by default. If a load balancer or ingress sits in front, add it with `ForwardedHeaders__KnownProxies__0=<ip>` or `ForwardedHeaders__KnownNetworks__0=<cidr>`. Otherwise every user shares the proxy's IP and its rate limit.
+- **Host names.** Set `AllowedHosts` (or `ALLOWED_HOSTS` with compose) to your domain, e.g. `hopinline.example.com`.
+- **HTTPS.** Terminate TLS at the proxy, or set `ASPNETCORE_URLS` with an `https` URL to have the app turn on HTTPS redirection and HSTS itself.
+- **Health check.** `GET /healthz` returns 200 when the app can reach the database, and 503 otherwise. It isn't rate limited.
+- **One instance.** Rate limits are kept in memory and Blazor Server keeps each user's session on one server. Run a single instance, or enable sticky sessions and accept that each instance counts limits separately.
+- **Monitoring.** Errors only go to the console log. Ship logs somewhere you'll see them (your host's log service, or add OpenTelemetry / Application Insights).
 
 ## Running the Tests
 

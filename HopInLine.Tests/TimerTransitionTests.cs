@@ -22,6 +22,43 @@ public class TimerTransitionTests : IDisposable
     public void Dispose() => _fixture.Dispose();
 
     [Fact]
+    public async Task FirstJoin_StartsTimerOnAutoAdvanceLine()
+    {
+        // Arrange: A new auto-advance line has no deadline yet
+        var line = TestData.Line(id: "JOIN-1", autoAdvanceLine: true);
+        await _repository.AddLineAsync(line, default);
+
+        // Act
+        await _repository.AddParticipantAsync("JOIN-1", TestData.Participant("Alice", 0));
+
+        // Assert: The first person gets a full interval
+        var retrieved = await _repository.GetLineAsync("JOIN-1");
+        Assert.NotNull(retrieved?.NextAdvanceAt);
+        var remaining = (retrieved.NextAdvanceAt.Value - DateTime.UtcNow).TotalSeconds;
+        Assert.InRange(remaining, 30 - ToleranceSeconds, 30);
+    }
+
+    [Fact]
+    public async Task LaterJoin_DoesNotResetTimer()
+    {
+        // Arrange: Someone is already mid-turn
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        var line = TestData.Line(id: "JOIN-2", autoAdvanceLine: true);
+        line.NextAdvanceAt = deadline;
+        line.Participants.Add(TestData.Participant("Alice", 1));
+        line.NextPosition = 2;
+        await _repository.AddLineAsync(line, default);
+
+        // Act
+        await _repository.AddParticipantAsync("JOIN-2", TestData.Participant("Bob", 0));
+
+        // Assert: Bob joining didn't give Alice more time
+        var retrieved = await _repository.GetLineAsync("JOIN-2");
+        Assert.NotNull(retrieved?.NextAdvanceAt);
+        Assert.True(retrieved.NextAdvanceAt.Value - DateTime.UtcNow < TimeSpan.FromSeconds(30 - ToleranceSeconds));
+    }
+
+    [Fact]
     public async Task Pause_StoresRemainingAndClearsDeadline()
     {
         // Arrange: Create a line with NextAdvanceAt set 30 seconds in the future

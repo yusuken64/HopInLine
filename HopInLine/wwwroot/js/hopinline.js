@@ -69,6 +69,8 @@ window.hopInLine = (function() {
 
                 var formatted = formatDuration(remainingSeconds);
                 element.textContent = formatted;
+                element.classList.toggle("low", remainingSeconds <= 10);
+                element.classList.toggle("done", remainingSeconds <= 0);
                 element.classList.remove("countdown-tick");
                 void element.offsetWidth; // force reflow so the animation restarts every tick
                 element.classList.add("countdown-tick");
@@ -90,6 +92,10 @@ window.hopInLine = (function() {
             if (intervals[elementId]) {
                 clearInterval(intervals[elementId]);
                 delete intervals[elementId];
+            }
+            var element = document.getElementById(elementId);
+            if (element) {
+                element.classList.remove("low", "done");
             }
         },
 

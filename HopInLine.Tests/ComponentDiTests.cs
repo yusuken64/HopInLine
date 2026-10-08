@@ -24,8 +24,6 @@ public class ComponentDiTests : TestContext, IDisposable
         // Register services to mirror HopInLine/Program.cs exactly
         Services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(_fixture);
         Services.AddScoped<ILineRepository, SQLLineRepository>();
-        Services.AddSingleton<ILineOwnerNotifier, DebugLineOwnerNotifier>();
-        Services.AddSingleton<IEmailRateLimiter, InMemoryEmailRateLimiter>();
         Services.AddScoped<ILineService, LineService>();
         Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
         Services.AddScoped<OverlayService>();

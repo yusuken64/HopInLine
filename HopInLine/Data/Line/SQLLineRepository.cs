@@ -192,6 +192,13 @@ namespace HopInLine.Data.Line
                     throw new ArgumentException($"Line with ID {lineID} not found.");
                 }
 
+                // The first person into an empty line gets a full turn, not whatever was left on the clock
+                if (line.AutoAdvanceLine && !line.IsPaused && !line.Participants.Any(p => !p.Removed))
+                {
+                    line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                    line.CountDownStart = DateTime.UtcNow;
+                }
+
                 participant.Position = line.NextPosition++;
                 participant.Removed = false;
                 line.Participants.Add(participant);
@@ -303,6 +310,19 @@ namespace HopInLine.Data.Line
                 line.UnpauseRemaining = null;
                 line.IsPaused = false;
                 line.CountDownStart = DateTime.UtcNow;
+            });
+        }
+
+        public async Task ResetTimerAsync(string lineId)
+        {
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
+                if (line == null) return;
+
+                line.NextAdvanceAt = null;
+                line.UnpauseRemaining = line.AutoAdvanceInterval;
+                line.IsPaused = true;
             });
         }
 

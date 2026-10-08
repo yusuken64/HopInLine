@@ -1,24 +1,61 @@
-﻿services:
+services:
   web:
-    build: .
+    build:
+      context: .
+      target: final
     ports:
       - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Docker
-      - ConnectionStrings__DefaultConnection=Server=db;Database=hopinline;User=sa;Password=${SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      - ASPNETCORE_ENVIRONMENT=Production
+      - AllowedHosts=${ALLOWED_HOSTS:-*}
+      # The app connects with a least-privilege login; migrations run separately in "migrate"
+      - ConnectionStrings__DefaultConnection=Server=db;Database=hopinline;User=hopinline_app;Password=${APP_DB_PASSWORD};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}
+      - Database__MigrateOnStartup=false
+      - ForwardedHeaders__KnownProxies__0=${TRUSTED_PROXY:-}
+      - ForwardedHeaders__KnownNetworks__0=${TRUSTED_NETWORK:-}
     depends_on:
-      - db
+      db-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
     volumes:
       - dataprotection:/home/app/.aspnet/DataProtection-Keys
 
+  # Applies EF migrations as sa, then exits
+  migrate:
+    build:
+      context: .
+      target: migrator
+    command: ["--connection", "Server=db;Database=hopinline;User=sa;Password=${SA_PASSWORD};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Creates or updates the hopinline_app login, then exits
+  db-setup:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    entrypoint: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "db", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-b",
+                 "-v", "APP_DB_PASSWORD=${APP_DB_PASSWORD}", "-i", "/scripts/create-app-login.sql"]
+    volumes:
+      - ./docker/create-app-login.sql:/scripts/create-app-login.sql:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
     environment:
-      SA_PASSWORD: "${SA_PASSWORD}"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
       ACCEPT_EULA: "Y"
     ports:
-      - "1433:1433"
+      # Bound to localhost only so the database is never reachable from the network
+      - "127.0.0.1:14330:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
     volumes:
       - sqlvolume:/var/opt/mssql
 

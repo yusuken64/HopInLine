@@ -2,7 +2,7 @@
 @using HopInLine.Data.Line;
 
 @* Multi-step setup. Every field is optional — clicking Next through every step still creates a working line.
-   The line is created when leaving step 3, so steps 1–3 can go Back freely. *@
+   The line is created on the last step, then the manager lands on the line page, which handles inviting people. *@
 
 <div class="wizard">
     <h1 class="wizard-title">Before we start</h1>
@@ -19,10 +19,7 @@
     </ol>
 
     <div class="wizard-card">
-        @if (step < 4)
-        {
-            <a href="/" class="wizard-exit">Exit</a>
-        }
+        <a href="/" class="wizard-exit">Exit</a>
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
@@ -84,48 +81,22 @@
                         <span>I'll run the line but won't take a turn.</span>
                     </button>
                 </div>
-                break;
-
-            case 3:
-                <h2>Who's in line?</h2>
-                <p class="text-muted">(One name per line)</p>
-                <textarea @bind="initialPeople" class="form-control" rows="8"></textarea>
-                <p class="wizard-hint">You can always add people later.</p>
-                break;
-
-            case 4:
-                <h2>Invite people</h2>
-                <p>Share this link — anyone with it can join:</p>
-                <div class="wizard-link">
-                    <code>@shareLink</code>
-                    <button @onclick="() => Copy(shareLink, true)" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
-                </div>
-                <p>Or tell them the code <strong>@createdLineId</strong>.</p>
-
-                <p class="text-danger-token">Keep this link — it's the only way to manage the line:</p>
-                <div class="wizard-link wizard-link-danger">
-                    <code>@manageLink</code>
-                    <button @onclick="() => Copy(manageLink, false)" class="btn btn-secondary btn-sm">@(manageLinkCopied ? "Copied!" : "Copy")</button>
-                </div>
+                <p class="wizard-hint">You can invite and add people from the line page.</p>
                 break;
         }
 
         <div class="wizard-actions">
-            @if (step > 1 && step < 4)
+            @if (step > 1)
             {
                 <button @onclick="() => step--" class="btn btn-secondary" disabled="@busy">Back</button>
             }
-            @if (step < 3)
+            @if (step < StepNames.Length)
             {
                 <button @onclick="Next" class="btn btn-warning btn-lg">Next</button>
             }
-            else if (step == 3)
-            {
-                <button @onclick="CreateLine" class="btn btn-warning btn-lg" disabled="@busy">Create line</button>
-            }
             else
             {
-                <button @onclick="() => NavigationManager.NavigateTo(manageLink)" class="btn btn-warning btn-lg">Go to my line</button>
+                <button @onclick="CreateLine" class="btn btn-warning btn-lg" disabled="@busy">Create line</button>
             }
         </div>
     </div>
@@ -143,7 +114,7 @@
 
     private record LineTypeOption(LineType Type, string Icon, string Title, string Blurb);
 
-    private static readonly string[] StepNames = ["Line information", "Your information", "People", "Invite"];
+    private static readonly string[] StepNames = ["Line information", "Your information"];
 
     private static readonly LineTypeOption[] LineTypes =
     [
@@ -164,13 +135,6 @@
     private int intervalMinutes = 5;
     private string yourName = "";
     private bool joinSelf = true;
-    private string initialPeople = "";
-
-    private string? createdLineId;
-    private string shareLink = "";
-    private string manageLink = "";
-    private bool shareLinkCopied;
-    private bool manageLinkCopied;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -205,6 +169,7 @@
     {
         busy = true;
         errorMessage = null;
+        string? manageLink = null;
         try
         {
             var name = string.IsNullOrWhiteSpace(lineName) ? DefaultLineName : lineName.Trim();
@@ -216,12 +181,15 @@
                 // The interval is validated even when auto-advance is off
                 TimeSpan.FromMinutes(lineType == LineType.Simple ? 5 : intervalMinutes));
 
-            createdLineId = newLine.Id;
-            shareLink = NavigationManager.ToAbsoluteUri($"/view-line/{newLine.Id}").ToString();
             manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
 
-            // Remember the line before adding people, so a failure below doesn't lose the manage link
+            // Remember the line before joining, so a failure below doesn't lose the manage link
             await TryJs("hopInLine.saveRecentLine", new { lineId = newLine.Id, name, role = "manage", link = manageLink });
+
+            if (!string.IsNullOrWhiteSpace(yourName))
+            {
+                await TryJs("hopInLine.saveDisplayName", yourName.Trim());
+            }
 
             if (joinSelf)
             {
@@ -229,55 +197,25 @@
                 var result = await LineService.AddParticipantAsync(newLine.Id, me, newLine.ManageToken);
                 await TryJs("hopInLine.saveMyParticipation", newLine.Id, result.ParticipantId, result.LeaveToken);
             }
-
-            if (!string.IsNullOrWhiteSpace(yourName))
-            {
-                await TryJs("hopInLine.saveDisplayName", yourName.Trim());
-            }
-
-            var people = initialPeople
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(p => p.Length > 0);
-            foreach (var person in people)
-            {
-                await LineService.AddParticipantAsync(newLine.Id, person.Length > 60 ? person[..60] : person, newLine.ManageToken);
-            }
-
-            step = 4;
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            errorMessage = ex.Message;
-            // If the line was created but adding people failed, still show the links
-            if (createdLineId is not null)
-            {
-                step = 4;
-            }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An unexpected error occurred: {ex.Message}";
-            if (createdLineId is not null)
+            // Once the line exists, go to it anyway; the manager can add themselves from there
+            if (manageLink is null)
             {
-                step = 4;
+                errorMessage = ex is ArgumentException or InvalidOperationException
+                    ? ex.Message
+                    : $"An unexpected error occurred: {ex.Message}";
             }
         }
         finally
         {
             busy = false;
         }
-    }
 
-    private async Task Copy(string text, bool isShareLink)
-    {
-        var success = await JS.InvokeAsync<bool>("hopInLine.copyToClipboard", text);
-        if (isShareLink)
+        if (manageLink is not null)
         {
-            shareLinkCopied = success;
-        }
-        else
-        {
-            manageLinkCopied = success;
+            NavigationManager.NavigateTo(manageLink);
         }
     }
 

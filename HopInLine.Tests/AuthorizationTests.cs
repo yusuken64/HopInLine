@@ -22,34 +22,12 @@ public class AuthorizationTests : IDisposable
         _fixture = new SqliteDbFixture();
         _notifier = new RecordingLineChangeNotifier();
         var repository = new SQLLineRepository(_fixture);
-        _service = new LineService(repository, _notifier, new NoOpLineOwnerNotifier(), new NoOpEmailRateLimiter());
+        _service = new LineService(repository, _notifier);
     }
 
     public void Dispose()
     {
         _fixture.Dispose();
-    }
-
-    /// <summary>
-    /// No-op owner notifier for testing LineService.
-    /// </summary>
-    private class NoOpLineOwnerNotifier : ILineOwnerNotifier
-    {
-        public Task NotifyLineCreatedAsync(string ownerEmail, string lineName, string viewUrl, string manageUrl, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// No-op email rate limiter for testing LineService.
-    /// </summary>
-    private class NoOpEmailRateLimiter : IEmailRateLimiter
-    {
-        public bool TryConsume(string email)
-        {
-            return true;
-        }
     }
 
     /// <summary>

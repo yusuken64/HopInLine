@@ -10,22 +10,16 @@ namespace HopInLine.Data.Line
     {
         private readonly ILineRepository _lineRepository;
         private readonly ILineChangeNotifier _notifier;
-        private readonly ILineOwnerNotifier _ownerNotifier;
-        private readonly IEmailRateLimiter _rateLimiter;
         private readonly IActionRateLimiter? _actionRateLimiter;
         private readonly ClientContext _client;
 
         public LineService(ILineRepository lineRepository,
             ILineChangeNotifier notifier,
-            ILineOwnerNotifier ownerNotifier,
-            IEmailRateLimiter rateLimiter,
             IActionRateLimiter? actionRateLimiter = null,
             ClientContext? client = null)
         {
             _lineRepository = lineRepository;
             _notifier = notifier;
-            _ownerNotifier = ownerNotifier;
-            _rateLimiter = rateLimiter;
             _actionRateLimiter = actionRateLimiter;
             _client = client ?? new ClientContext();
         }
@@ -115,7 +109,7 @@ namespace HopInLine.Data.Line
         /// Creates a new line. Returns the real token to its creator.
         /// </summary>
         public async Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
-            bool autoAdvanceLine, TimeSpan autoAdvanceInterval, string? ownerEmail = null)
+            bool autoAdvanceLine, TimeSpan autoAdvanceInterval)
         {
             Throttle(RateLimitedAction.Create);
 
@@ -128,22 +122,6 @@ namespace HopInLine.Data.Line
             if (!string.IsNullOrEmpty(description) && description.Length > 500)
             {
                 throw new ArgumentException("Description must not exceed 500 characters.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(ownerEmail))
-            {
-                try
-                {
-                    var parsedAddress = new System.Net.Mail.MailAddress(ownerEmail);
-                    if (parsedAddress.Address != ownerEmail)
-                    {
-                        throw new FormatException();
-                    }
-                }
-                catch (FormatException)
-                {
-                    throw new ArgumentException("Owner email is not a valid email address.");
-                }
             }
 
             // Interval bounds
@@ -184,13 +162,6 @@ namespace HopInLine.Data.Line
 
             await _lineRepository.AddLineAsync(newLine, CancellationToken.None);
             await _notifier.NotifyAsync(newLine.Id);
-
-            if (!string.IsNullOrWhiteSpace(ownerEmail) && _rateLimiter.TryConsume(ownerEmail))
-            {
-                var viewUrl = $"/view-line/{newLine.Id}";
-                var manageUrl = $"/manage/{newLine.Id}/{newLine.ManageToken}";
-                await _ownerNotifier.NotifyLineCreatedAsync(ownerEmail, newLine.Name, viewUrl, manageUrl);
-            }
 
             return LineDto.FromLine(newLine); // Return the real token to the creator
         }
@@ -241,13 +212,6 @@ namespace HopInLine.Data.Line
             var participant = ParticipantFactory.Create(participantName);
 
             await _lineRepository.AddParticipantAsync(lineId, participant);
-
-            line = await _lineRepository.GetLineAsync(lineId);
-            if (line != null && line.Participants.Count == 1)
-            {
-                line.CountDownStart = DateTime.UtcNow;
-            }
-
             await _notifier.NotifyAsync(lineId);
 
             return new ParticipantJoinResult(participant.Id, participant.LeaveToken);
@@ -284,7 +248,22 @@ namespace HopInLine.Data.Line
             line.AutoAdvanceLine = autoAdvanceLine;
             line.AutoReAdd = autoReAdd;
             line.AutoRestartTimerOnAdvance = autoRestartTimerOnAdvance;
+
+            // A paused timer sitting at its full interval (reset, or never started) follows the new interval;
+            // a partially elapsed one keeps its remaining time
+            if (line.IsPaused && (line.UnpauseRemaining is null || line.UnpauseRemaining >= line.AutoAdvanceInterval
+                                  || line.UnpauseRemaining > autoAdvanceInterval))
+            {
+                line.UnpauseRemaining = autoAdvanceInterval;
+            }
             line.AutoAdvanceInterval = autoAdvanceInterval;
+
+            // Turning auto-advance on starts the clock; otherwise nothing would ever schedule the first advance
+            if (line.AutoAdvanceLine && !line.IsPaused && line.NextAdvanceAt == null)
+            {
+                line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                line.CountDownStart = DateTime.UtcNow;
+            }
 
             await _lineRepository.UpdateLineAsync(line);
             await _notifier.NotifyAsync(line.Id);
@@ -451,6 +430,17 @@ namespace HopInLine.Data.Line
             var line = await AuthorizeAsync(lineId, manageToken);
 
             await _lineRepository.RestartTimerAsync(line.Id);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Resets the line's timer to its full interval and leaves it paused. Requires valid manageToken.
+        /// </summary>
+        public async Task ResetTimerAsync(string lineId, string manageToken)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.ResetTimerAsync(line.Id);
             await _notifier.NotifyAsync(line.Id);
         }
 

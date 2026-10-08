@@ -18,51 +18,105 @@
 }
 else
 {
-	<div class="view-line-shell">
-		<div>
-			<h1 style="margin: 0;">@line.Name</h1>
+	<aside class="side-panel @(panelOpen ? "open" : "")" aria-label="Line panel">
+		<button class="side-panel-toggle" @onclick="TogglePanel"
+				aria-expanded="@(panelOpen ? "true" : "false")"
+				aria-label="@(panelOpen ? "Close panel" : (canManage ? "Open invite and settings panel" : "Open invite panel"))">
+			<span class="oi @(panelOpen ? "oi-chevron-left" : "oi-chevron-right")" aria-hidden="true"></span>
+		</button>
 
-			<div class="share-bar">
-				<span>Invite: <code>@ShareLink</code></span>
-				<button @onclick="CopyShareLink" class="btn btn-secondary btn-sm">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
-				<span class="text-muted">or code <strong>@line.Id</strong></span>
-			</div>
-
-			@if (canManage)
+		<div class="side-panel-body">
+			@if (panelTab == PanelTab.Invite)
 			{
-				<p class="text-muted" style="margin: 0;">
-					You're managing this line. Bookmark this page — this URL is the only way back in as manager.
-					<button @onclick="CopyManageLink" class="btn btn-link btn-sm">@(manageLinkCopied ? "Copied!" : "Copy manage link")</button>
-				</p>
-			}
+				<h2 class="side-panel-heading">Invite people</h2>
+				<p class="text-muted">Anyone with this link can see the line and hop in.</p>
+				<input class="form-control" readonly value="@ShareLink" aria-label="Join link" />
+				<div class="side-panel-row">
+					<button @onclick="CopyShareLink" class="btn btn-primary">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
+					<span class="text-muted">or code <strong>@line.Id</strong></span>
+				</div>
 
+				@if (canManage)
+				{
+					<h2 class="side-panel-heading">Add someone</h2>
+					<p class="text-muted">For people who aren't on a device.</p>
+					<form class="side-panel-row" @onsubmit="AddOther" @onsubmit:preventDefault>
+						<input @bind="newParticipant" placeholder="Name" maxlength="60" class="form-control" disabled="@busy" aria-label="Name to add" />
+						<button type="submit" class="btn btn-outline-success" disabled="@busy">Add</button>
+					</form>
+
+					<h2 class="side-panel-heading">Manage link</h2>
+					<p class="text-muted">Bookmark this page — this URL is the only way back in as manager. Don't share it.</p>
+					<button @onclick="CopyManageLink" class="btn btn-secondary">@(manageLinkCopied ? "Copied!" : "Copy manage link")</button>
+				}
+			}
+			else if (panelTab == PanelTab.Settings && canManage)
+			{
+				@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
+				{
+					<h2 class="side-panel-heading">Timer</h2>
+					<p class="text-muted">Advances every @DurationFormat.Humanize(line.AutoAdvanceInterval).</p>
+					<div class="side-panel-row">
+						@if (line.IsPaused)
+						{
+							<button @onclick="ResumeTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+								Resume timer
+							</button>
+						}
+						else
+						{
+							<button @onclick="PauseTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" /></svg>
+								Pause timer
+							</button>
+						}
+						<button @onclick="RestartTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+							<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor" /></svg>
+							Restart timer
+						</button>
+						@if (line.IsPaused)
+						{
+							<button @onclick="ResetTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zM9.5 12 18 18V6z" fill="currentColor" /></svg>
+								Reset timer
+							</button>
+						}
+					</div>
+				}
+
+				<h2 class="side-panel-heading">Line settings</h2>
+				<button @onclick="Edit" class="btn btn-secondary" disabled="@busy">Edit line</button>
+
+				<h2 class="side-panel-heading">Danger zone</h2>
+				<button @onclick="DeleteLineAsync" class="btn btn-outline-danger" disabled="@busy">Delete line</button>
+			}
+		</div>
+
+		@if (canManage)
+		{
+			<nav class="side-panel-tabs" role="tablist">
+				<button role="tab" aria-selected="@(panelTab == PanelTab.Invite ? "true" : "false")"
+						class="side-panel-tab @(panelTab == PanelTab.Invite ? "active" : "")"
+						@onclick="() => panelTab = PanelTab.Invite">
+					<span class="oi oi-people" aria-hidden="true"></span> Invite
+				</button>
+				<button role="tab" aria-selected="@(panelTab == PanelTab.Settings ? "true" : "false")"
+						class="side-panel-tab @(panelTab == PanelTab.Settings ? "active" : "")"
+						@onclick="() => panelTab = PanelTab.Settings">
+					<span class="oi oi-cog" aria-hidden="true"></span> Settings
+				</button>
+			</nav>
+		}
+	</aside>
+
+	<div class="view-line-shell @(panelOpen ? "panel-open" : "")">
+		<div>
+			<h1 style="margin: 0;">@line.Name @if (line.Participants is { Count: > 0 }) {<span class="history-count" title="People in line">(@line.Participants.Count)</span>}</h1>
 
 			@if (!string.IsNullOrEmpty(errorMessage))
 			{
 				<div class="alert alert-danger" role="alert">@errorMessage</div>
-			}
-
-			@if (canManage)
-			{
-				<div style="display: flex; justify-content: space-between; align-items: center;">
-					<div>
-						@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
-						{
-							@if (line.IsPaused)
-							{
-								<button @onclick="ResumeTimer" disabled="@busy">Resume Timer</button>
-							}
-							else
-							{
-								<button @onclick="PauseTimer" disabled="@busy">Pause Timer</button>
-							}
-
-							<button @onclick="RestartTimer" disabled="@busy">Restart Timer</button>
-						}
-						<button @onclick="Edit" disabled="@busy">Edit</button>
-						<button @onclick="DeleteLineAsync" disabled="@busy" class="text-danger-token">Delete Line</button>
-					</div>
-				</div>
 			}
 
 			<div class="participants-list">
@@ -75,17 +129,19 @@ else
 					var firstActiveId = line.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).FirstOrDefault()?.Id;
 					@if (line.AutoAdvanceLine)
 					{
-						<div>
-							<span>Time left to auto-advance: <span id="countdown-@line.Id" aria-live="polite">@GetTimeLeftDisplay()</span></span>
-							@if (line.IsPaused)
+						var nowUp = line.Participants.FirstOrDefault(p => p.Id == firstActiveId)?.Name;
+						<section class="scoreboard @(line.IsPaused ? "paused" : "")" aria-label="Turn timer">
+							@if (nowUp is not null)
 							{
-								<span style="color: var(--color-pause); margin-left: var(--space-2);">⏸️ Paused</span>
+								<div class="scoreboard-label">Now up</div>
+								<div class="scoreboard-name">@nowUp</div>
 							}
-							else
-							{
-								<span style="color: var(--color-play); margin-left: var(--space-2);">▶️ Playing</span>
-							}
-						</div>
+							<div class="scoreboard-clock" id="countdown-@line.Id" role="timer">@GetTimeLeftDisplay()</div>
+							<div class="scoreboard-status">
+								<span class="scoreboard-light" aria-hidden="true"></span>
+								@(line.IsPaused ? "Paused" : "Time left")
+							</div>
+						</section>
 					}
 					@foreach (var participant in line.Participants.OrderBy(x => x.Position))
 					{
@@ -119,8 +175,20 @@ else
 				}
 			</div>
 
-			<h2>Removed Participants History</h2>
-			@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+			<h2 class="history-heading">
+				<button type="button" class="history-toggle" @onclick="() => historyCollapsed = !historyCollapsed" aria-expanded="@(!historyCollapsed)">
+					<span class="history-chevron @(historyCollapsed ? "collapsed" : "")" aria-hidden="true">▾</span>
+					Removed Participants History
+					@if (line.RemovedParticipants is { Count: > 0 })
+					{
+						<span class="history-count">(@line.RemovedParticipants.Count)</span>
+					}
+				</button>
+			</h2>
+			@if (historyCollapsed)
+			{
+			}
+			else if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
 			{
 				<p>History shows up here once someone's had a turn.</p>
 			}
@@ -173,8 +241,6 @@ else
 			@if (canManage)
 			{
 				<div class="toolbar-input">
-					<input @bind="newParticipant" placeholder="Add someone else" maxlength="60" class="form-control" disabled="@busy" />
-					<button @onclick="AddOther" class="btn btn-outline-success" disabled="@busy">Add</button>
 					<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
 				</div>
 			}
@@ -236,6 +302,12 @@ else
 	private bool shareLinkCopied;
 	private bool manageLinkCopied;
 
+	private enum PanelTab { Invite, Settings }
+	private bool panelOpen;
+	private PanelTab panelTab = PanelTab.Invite;
+
+	private void TogglePanel() => panelOpen = !panelOpen;
+
 	// Browser-remembered identity: the display name is shared across lines; participation is per line
 	private string? myName;
 	private string? nameInput;
@@ -254,6 +326,8 @@ else
 			return index < 0 ? null : index + 1;
 		}
 	}
+
+	private bool historyCollapsed;
 
 	private string ShareLink =>NavigationManager.ToAbsoluteUri($"/view-line/{LineId}").ToString();
 
@@ -355,7 +429,7 @@ else
 		{
 			if (line.AutoAdvanceLine && line.NextAdvanceAt.HasValue)
 			{
-				await JS.InvokeVoidAsync("hopInLine.startCountdown", $"countdown-{LineId}", line.NextAdvanceAt.Value.ToString("O"));
+				await JS.InvokeVoidAsync("hopInLine.startCountdown", $"countdown-{LineId}", DateTime.SpecifyKind(line.NextAdvanceAt.Value, DateTimeKind.Utc).ToString("O"));
 			}
 			else if (line.AutoAdvanceLine)
 			{
@@ -377,7 +451,8 @@ else
 		}
 		else if (line.IsPaused)
 		{
-			return DurationFormat.Humanize(TimeSpan.Zero);
+			// Nothing stored: Resume starts a full interval, so show that
+			return DurationFormat.Humanize(line.AutoAdvanceInterval);
 		}
 		else if (line.NextAdvanceAt.HasValue)
 		{
@@ -888,6 +963,45 @@ else
 		try
 		{
 			await LineService.PauseTimerAsync(LineId, ManageToken ?? string.Empty);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
+		}
+		finally
+		{
+			busy = false;
+		}
+	}
+
+	private async Task ResetTimer(MouseEventArgs args)
+	{
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
+		errorMessage = null;
+		try
+		{
+			await LineService.ResetTimerAsync(LineId, ManageToken ?? string.Empty);
 		}
 		catch (ArgumentException ex)
 		{

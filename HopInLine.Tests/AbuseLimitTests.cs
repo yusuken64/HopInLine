@@ -19,7 +19,7 @@ public class AbuseLimitTests : IDisposable
         _fixture = new SqliteDbFixture();
         _repository = new SQLLineRepository(_fixture);
         _limiter = new InMemoryActionRateLimiter();
-        _service = new LineService(_repository, new NoOpLineChangeNotifier(), new NoOpLineOwnerNotifier(), new NoOpEmailRateLimiter(), _limiter, new ClientContext { ClientIp = "10.0.0.1" });
+        _service = new LineService(_repository, new NoOpLineChangeNotifier(), _limiter, new ClientContext { ClientIp = "10.0.0.1" });
     }
 
     public void Dispose()
@@ -188,7 +188,7 @@ public class AbuseLimitTests : IDisposable
         }
 
         // Another tab from the same office IP is still under the looser per-IP limit
-        var otherTab = new LineService(_repository, new NoOpLineChangeNotifier(), new NoOpLineOwnerNotifier(), new NoOpEmailRateLimiter(),
+        var otherTab = new LineService(_repository, new NoOpLineChangeNotifier(),
             _limiter, new ClientContext { ClientIp = "10.0.0.1" });
         var line = await otherTab.CreateLineAsync("From another tab", null, false, false, TimeSpan.FromMinutes(5));
         Assert.NotNull(line);
@@ -201,17 +201,6 @@ public class AbuseLimitTests : IDisposable
         context.PreserveLastUpdated = true;
         context.Lines.Add(line);
         await context.SaveChangesAsync();
-    }
-
-    private class NoOpLineOwnerNotifier : ILineOwnerNotifier
-    {
-        public Task NotifyLineCreatedAsync(string ownerEmail, string lineName, string viewUrl, string manageUrl, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-    }
-
-    private class NoOpEmailRateLimiter : IEmailRateLimiter
-    {
-        public bool TryConsume(string email) => true;
     }
 
     private class NoOpLineChangeNotifier : ILineChangeNotifier

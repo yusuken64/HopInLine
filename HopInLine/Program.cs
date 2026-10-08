@@ -1,3 +1,4 @@
+using HopInLine.Data;
 using HopInLine.Data.Line;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -21,8 +22,6 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
 builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddSingleton<ILineChangeNotifier, LineChangeNotifier>();
-builder.Services.AddSingleton<ILineOwnerNotifier, DebugLineOwnerNotifier>();
-builder.Services.AddSingleton<IEmailRateLimiter, InMemoryEmailRateLimiter>();
 builder.Services.AddSingleton<IActionRateLimiter, InMemoryActionRateLimiter>();
 builder.Services.AddScoped<ClientContext>();
 builder.Services.AddHostedService<LineAdvancementBackgroundService>();
@@ -37,9 +36,26 @@ var aspnetcoreUrls = builder.Configuration["ASPNETCORE_URLS"];
 var hasHttps = (!string.IsNullOrEmpty(httpsUrls) && httpsUrls.Contains("https")) ||
                (!string.IsNullOrEmpty(aspnetcoreUrls) && aspnetcoreUrls.Contains("https"));
 
-// Configure ForwardedHeaders middleware
+// Forwarded headers are only honored from trusted proxies, otherwise every client would share
+// the proxy's IP for rate limiting. Loopback is trusted by default; add your load balancer or
+// ingress under ForwardedHeaders:KnownProxies (IPs) or ForwardedHeaders:KnownNetworks (CIDRs).
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
-    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()?.Where(s => !string.IsNullOrWhiteSpace(s)) ?? [])
+    {
+        o.KnownProxies.Add(System.Net.IPAddress.Parse(proxy));
+    }
+
+    foreach (var network in builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>()?.Where(s => !string.IsNullOrWhiteSpace(s)) ?? [])
+    {
+        o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+    }
+});
+
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
 
 // Per-IP limit on every HTTP request that reaches routing: page loads and Blazor connections.
 // Static files are served before routing and are not counted. In-app actions are limited in LineService.
@@ -85,11 +101,18 @@ app.UseRouting();
 
 app.UseRateLimiter();
 
+// Probes from the orchestrator shouldn't eat into a client's request budget
+app.MapHealthChecks("/healthz").DisableRateLimiting();
+// Serves framework assets like blazor.server.js, which publish no longer copies into wwwroot
+app.MapStaticAssets().DisableRateLimiting();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-using (var scope = app.Services.CreateScope())
+// Convenient for a single instance. With several instances, set Database:MigrateOnStartup=false
+// and apply migrations as a separate deployment step so instances don't race each other.
+if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 {
+	using var scope = app.Services.CreateScope();
 	var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
 	using var db = factory.CreateDbContext();
 	db.Database.Migrate();
