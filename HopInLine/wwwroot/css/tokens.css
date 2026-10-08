@@ -12,17 +12,27 @@
   --color-gray-800: #343a40;
   --color-gray-900: #212529;
 
+  /* Palette */
+  --color-burnt-peach: #ce6d49;
+  --color-dusty-grape: #574b75;
+  --color-charcoal-blue: #36444e;
+  --color-honey-bronze: #e1b057;
+  --color-dusty-olive: #668955;
+
   /* Brand */
-  --color-brand-500: #1b6ec2;
+  --color-brand-500: var(--color-dusty-grape);
+  --color-brand-600: #463c5f;
+  --color-accent: var(--color-honey-bronze);
+  --color-accent-600: #d49d3c;
 
   /* Semantic colors */
-  --color-danger: #c0392b;
-  --color-danger-bg: #fdecea;
-  --color-danger-border: #e74c3c;
-  --color-success: #2f9e44;
-  --color-pause: #d9720a;
-  --color-play: #2f9e44;
-  --color-focus-ring: #1b6ec2;
+  --color-danger: var(--color-burnt-peach);
+  --color-danger-bg: #f8e6df;
+  --color-danger-border: var(--color-burnt-peach);
+  --color-success: var(--color-dusty-olive);
+  --color-pause: var(--color-burnt-peach);
+  --color-play: var(--color-dusty-olive);
+  --color-focus-ring: var(--color-dusty-grape);
 
   /* Spacing scale */
   --space-1: 4px;
@@ -51,7 +61,7 @@
   --radius-pill: 999px;
   --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.15);
-  --shadow-focus: 0 0 0 3px rgba(27, 110, 194, 0.35);
+  --shadow-focus: 0 0 0 3px rgba(87, 75, 117, 0.35);
 
   /* Motion */
   --transition-fast: 120ms;

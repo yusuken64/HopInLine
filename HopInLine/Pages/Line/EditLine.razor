@@ -15,39 +15,46 @@ else if (loadedLine == null)
 }
 else
 {
-    <h1>Edit line</h1>
+  <div class="page">
+    <h1 class="page-title">Edit line</h1>
 
+    <div class="page-card">
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger" role="alert">@errorMessage</div>
     }
 
-    <div>
-        <p>To edit the line, please update the following details:</p>
-    </div>
+    <h2>Line information</h2>
 
     <div class="form-group">
-        <label for="lineName">Line Name:</label>
+        <label for="lineName">Line name</label>
         <input type="text" id="lineName" @bind="editModel.Name" class="form-control" placeholder="Enter line name" />
     </div>
 
     <div class="form-group">
-        <label for="description">Description:</label>
-        <textarea id="description" @bind="editModel.Description" class="form-control" placeholder="Enter description"></textarea>
+        <label for="description">Description (optional)</label>
+        <textarea id="description" @bind="editModel.Description" class="form-control" placeholder="What's this line for?"></textarea>
     </div>
 
-    <div class="form-group">
-        <label for="autoAdvanceLine">Timer Advance:</label>
+    <h2>How should it run?</h2>
+
+    <div class="form-check mb-3">
         <input type="checkbox" id="autoAdvanceLine" @bind="editModel.AutoAdvanceLine" class="form-check-input" />
+        <label for="autoAdvanceLine" class="form-check-label">Timed turns (auto-advance)</label>
     </div>
 
-    <div class="form-group">
-        <label for="autoRestartTimerOnAdvance">Auto Start Timer after Advancing:</label>
+    <div class="form-check mb-3">
         <input type="checkbox" id="autoRestartTimerOnAdvance" @bind="editModel.AutoRestartTimerOnAdvance" class="form-check-input" />
+        <label for="autoRestartTimerOnAdvance" class="form-check-label">Start the timer automatically after advancing</label>
+    </div>
+
+    <div class="form-check mb-3">
+        <input type="checkbox" id="autoReAdd" @bind="editModel.AutoReAdd" class="form-check-input" />
+        <label for="autoReAdd" class="form-check-label">Rotation (people rejoin the back after their turn)</label>
     </div>
 
     <div class="form-group">
-        <label for="autoAdvanceMinutes">Auto-Advance Interval (Minutes):</label>
+        <label for="autoAdvanceMinutes">Minutes per turn</label>
         <input type="number"
                id="autoAdvanceMinutes"
                @bind="editModel.AutoAdvanceIntervalMinutes"
@@ -59,7 +66,7 @@ else
     </div>
 
     <div class="form-group">
-        <label for="graceSeconds">Grace time between turns (Seconds):</label>
+        <label for="graceSeconds">Grace time between turns (seconds, 0 for none)</label>
         <input type="number"
                id="graceSeconds"
                @bind="editModel.GraceSeconds"
@@ -70,7 +77,7 @@ else
     </div>
 
     <div class="form-group">
-        <label for="startCountdownSeconds">Start countdown (Seconds):</label>
+        <label for="startCountdownSeconds">Start countdown (seconds, 0 for none)</label>
         <input type="number"
                id="startCountdownSeconds"
                @bind="editModel.StartCountdownSeconds"
@@ -80,14 +87,13 @@ else
                step="1" />
     </div>
 
-    <div class="form-group">
-        <label for="autoReAdd">Auto Re-Add:</label>
-        <input type="checkbox" id="autoReAdd" @bind="editModel.AutoReAdd" class="form-check-input" />
+    <div class="page-actions">
+        <button @onclick="Delete" class="btn btn-outline-danger">Delete</button>
+        <button @onclick="Cancel" class="btn btn-secondary">Cancel</button>
+        <button @onclick="SaveChanges" class="btn btn-warning btn-lg">Save</button>
     </div>
-
-    <button @onclick="SaveChanges" class="btn btn-primary">Save</button>
-    <button @onclick="Cancel" class="btn btn-secondary">Cancel</button>
-    <button @onclick="Delete" class="btn btn-danger">Delete</button>
+    </div>
+  </div>
 
 }
 @code {

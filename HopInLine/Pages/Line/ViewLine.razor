@@ -111,15 +111,15 @@ else
 	</aside>
 
 	<div class="view-line-shell @(panelOpen ? "panel-open" : "")">
-		<div>
-			<h1 style="margin: 0;">@line.Name @if (line.Participants is { Count: > 0 }) {<span class="history-count" title="People in line">(@line.Participants.Count)</span>}</h1>
+		<div class="page view-line-content">
+			<h1 class="page-title">@line.Name @if (line.Participants is { Count: > 0 }) {<span class="history-count" title="People in line">(@line.Participants.Count)</span>}</h1>
 
 			@if (!string.IsNullOrEmpty(errorMessage))
 			{
 				<div class="alert alert-danger" role="alert">@errorMessage</div>
 			}
 
-			<div class="participants-list">
+			<div class="participants-list page-card">
 				@if (line.Participants == null || line.Participants.Count == 0)
 				{
 					<p>No one's in line yet — add the first person below.</p>
@@ -175,6 +175,7 @@ else
 				}
 			</div>
 
+			<div class="page-card">
 			<h2 class="history-heading">
 				<button type="button" class="history-toggle" @onclick="() => historyCollapsed = !historyCollapsed" aria-expanded="@(!historyCollapsed)">
 					<span class="history-chevron @(historyCollapsed ? "collapsed" : "")" aria-hidden="true">▾</span>
@@ -220,6 +221,7 @@ else
 					}
 				}
 			}
+			</div>
 		</div>
 
 		<div class="toolbar">

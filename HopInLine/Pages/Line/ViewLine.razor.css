@@ -4,6 +4,12 @@
     min-height: 100dvh;
 }
 
+.view-line-content {
+    color: var(--color-charcoal-blue);
+    width: 100%;
+    flex: 1;
+}
+
 .toolbar {
     position: sticky;
     bottom: 0;

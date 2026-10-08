@@ -3,7 +3,7 @@ main {
 }
 
 .top-row {
-    background-color: var(--color-gray-900);
+    background-color: var(--color-charcoal-blue);
     color: var(--color-white);
     padding: var(--space-4) !important;
     height: 3.5rem;

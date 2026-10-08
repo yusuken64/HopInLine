@@ -1,26 +1,3 @@
-::deep h1 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-}
-
-::deep h3 {
-    color: var(--color-gray-600);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-regular);
-    margin-bottom: var(--space-5);
-}
-
-::deep .mb-4 {
-    margin-bottom: var(--space-6) !important;
-}
-
-::deep .card {
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    border: none;
-    margin-bottom: var(--space-5);
-}
-
 ::deep .list-group-item {
     padding: var(--space-3) var(--space-2);
 }

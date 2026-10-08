@@ -8,18 +8,166 @@ h1:focus {
     outline: none;
 }
 
-a, .btn-link {
-    color: #0071c1;
+body {
+    background-color: var(--color-dusty-grape);
+    color: var(--color-charcoal-blue);
 }
 
+a, .btn-link {
+    color: var(--color-brand-500);
+}
+
+a:hover, .btn-link:hover {
+    color: var(--color-brand-600);
+}
+
+/* Bootstrap buttons recolored to the app palette */
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--color-brand-500);
+    border-color: var(--color-brand-500);
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    color: #fff;
+    background-color: var(--color-brand-600);
+    border-color: var(--color-brand-600);
+}
+
+.btn-warning {
+    color: var(--color-charcoal-blue);
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active {
+    color: var(--color-charcoal-blue);
+    background-color: var(--color-accent-600);
+    border-color: var(--color-accent-600);
+}
+
+.btn-secondary {
+    color: #fff;
+    background-color: var(--color-charcoal-blue);
+    border-color: var(--color-charcoal-blue);
+}
+
+.btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active {
+    color: #fff;
+    background-color: #29343c;
+    border-color: #29343c;
+}
+
+.btn-success {
+    color: #fff;
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.btn-success:hover, .btn-success:focus, .btn-success:active {
+    color: #fff;
+    background-color: #557447;
+    border-color: #557447;
+}
+
+.btn-danger {
+    color: #fff;
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active {
+    color: #fff;
+    background-color: #b95b39;
+    border-color: #b95b39;
+}
+
+.btn-outline-success {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.btn-outline-success:hover {
+    color: #fff;
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.btn-outline-danger {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.btn-outline-danger:hover {
+    color: #fff;
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.alert-danger {
+    color: #8a3f24;
+    background-color: var(--color-danger-bg);
+    border-color: var(--color-danger-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--color-brand-500);
+    border-color: var(--color-brand-500);
+}
+
+.form-control:focus {
+    border-color: var(--color-brand-500);
+    box-shadow: var(--shadow-focus);
 }
 
 .content {
     padding-top: 1.1rem;
+}
+
+/* Shared page look, matching the start-line wizard */
+.page {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* Titles sit directly on the grape background */
+.page-title {
+    color: var(--color-white);
+    text-align: center;
+    margin-bottom: var(--space-5);
+}
+
+.page-subtitle {
+    text-align: center;
+    color: var(--color-gray-200);
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-5);
+}
+
+.page-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.page-card h2 {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    margin: 0 0 var(--space-4);
+}
+
+.page-card .form-group {
+    margin-bottom: var(--space-4);
+}
+
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
 }
 
 .valid.modified:not([type=checkbox]) {

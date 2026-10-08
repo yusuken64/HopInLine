@@ -1,36 +1,36 @@
 ﻿@page "/"
 @using HopInLine.Data.Line;
 
-<h1>Hop In Line</h1>
+<div class="page">
+    <h1 class="page-title">Hop In Line</h1>
 
-<h3>Track who's next — no sign-up, no setup. One click and share the link.</h3>
+    <p class="page-subtitle">Track who's next — no sign-up, no setup. One click and share the link.</p>
 
-<div class="mb-4">
-    <button @onclick="NavigateToStartLine" class="btn btn-primary btn-lg">Start A Line</button>
-</div>
+    <div class="page-actions mb-5">
+        <button @onclick="NavigateToStartLine" class="btn btn-warning btn-lg">Start a line</button>
+    </div>
 
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title">Join a Line</h5>
+    <div class="page-card">
+        <h2>Join a line</h2>
         <form @onsubmit="NavigateToJoinLine" @onsubmit:preventDefault>
-            <div class="mb-3">
-                <label for="lineId" class="form-label">Enter Line ID:</label>
-                <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the Line ID here" @aria-describedby="joinError != null ? "join-error" : null" />
+            <div class="form-group">
+                <label for="lineId">Line code</label>
+                <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the line code here" @aria-describedby="joinError != null ? "join-error" : null" />
             </div>
             @if (joinError != null)
             {
                 <div class="alert alert-danger" role="alert" id="join-error">@joinError</div>
             }
-            <button type="submit" class="btn btn-secondary btn-lg">Join</button>
+            <div class="page-actions">
+                <button type="submit" class="btn btn-warning btn-lg">Join</button>
+            </div>
         </form>
     </div>
-</div>
 
-@if (recentLines.Count > 0)
-{
-    <div class="card mt-4">
-        <div class="card-body">
-            <h5 class="card-title">Your lines</h5>
+    @if (recentLines.Count > 0)
+    {
+        <div class="page-card">
+            <h2>Your lines</h2>
             <ul class="list-group">
                 @foreach (var entry in recentLines)
                 {
@@ -41,8 +41,8 @@
                 }
             </ul>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     [Inject]
