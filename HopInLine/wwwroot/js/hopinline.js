@@ -46,7 +46,9 @@ window.hopInLine = (function() {
     }
 
     return {
-        startCountdown: function(elementId, targetUtcIso) {
+        // delayEndUtcIso/delayLabel/statusId are optional: while the lead-in (grace or start countdown) is running,
+        // the clock counts down to its end and the status text shows delayLabel, then it counts down to the target.
+        startCountdown: function(elementId, targetUtcIso, delayEndUtcIso, delayLabel, statusId) {
             var element = document.getElementById(elementId);
             if (!element) {
                 return;
@@ -60,12 +62,19 @@ window.hopInLine = (function() {
 
             // Parse target UTC timestamp
             var targetTime = new Date(targetUtcIso).getTime();
+            var delayEndTime = delayEndUtcIso ? new Date(delayEndUtcIso).getTime() : null;
+            var statusElement = statusId ? document.getElementById(statusId) : null;
 
             // Update immediately
             var updateCountdown = function() {
                 var now = new Date().getTime();
-                var remainingMs = targetTime - now;
+                var inDelay = delayEndTime !== null && now < delayEndTime;
+                var remainingMs = (inDelay ? delayEndTime : targetTime) - now;
                 var remainingSeconds = remainingMs / 1000;
+
+                if (statusElement && delayEndTime !== null) {
+                    statusElement.textContent = inDelay ? delayLabel : "Time left";
+                }
 
                 var formatted = formatDuration(remainingSeconds);
                 element.textContent = formatted;

@@ -139,7 +139,7 @@ else
 							<div class="scoreboard-clock" id="countdown-@line.Id" role="timer">@GetTimeLeftDisplay()</div>
 							<div class="scoreboard-status">
 								<span class="scoreboard-light" aria-hidden="true"></span>
-								@(line.IsPaused ? "Paused" : "Time left")
+								<span id="status-@line.Id">@GetStatusLabel()</span>
 							</div>
 						</section>
 					}
@@ -429,7 +429,11 @@ else
 		{
 			if (line.AutoAdvanceLine && line.NextAdvanceAt.HasValue)
 			{
-				await JS.InvokeVoidAsync("hopInLine.startCountdown", $"countdown-{LineId}", DateTime.SpecifyKind(line.NextAdvanceAt.Value, DateTimeKind.Utc).ToString("O"));
+				var delayEnd = line.DelayEndsAt.HasValue && !line.IsPaused
+					? DateTime.SpecifyKind(line.DelayEndsAt.Value, DateTimeKind.Utc).ToString("O")
+					: null;
+				await JS.InvokeVoidAsync("hopInLine.startCountdown", $"countdown-{LineId}", DateTime.SpecifyKind(line.NextAdvanceAt.Value, DateTimeKind.Utc).ToString("O"),
+					delayEnd, DelayLabel, $"status-{LineId}");
 			}
 			else if (line.AutoAdvanceLine)
 			{
@@ -438,11 +442,22 @@ else
 		}
 	}
 
+	private string DelayLabel => line?.DelayIsStartCountdown == true ? "Starting in" : "Next up in";
+
+	private bool InDelay => line is { IsPaused: false, DelayEndsAt: not null } && line.DelayEndsAt.Value > DateTime.UtcNow;
+
+	private string GetStatusLabel() => line?.IsPaused == true ? "Paused" : InDelay ? DelayLabel : "Time left";
+
 	private string GetTimeLeftDisplay()
 	{
 		if (line is null)
 		{
 			return "Loading...";
+		}
+
+		if (InDelay)
+		{
+			return DurationFormat.Humanize(line.DelayEndsAt!.Value - DateTime.UtcNow);
 		}
 
 		if (line.IsPaused && line.UnpauseRemaining.HasValue)

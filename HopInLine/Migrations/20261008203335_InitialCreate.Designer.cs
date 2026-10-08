@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HopInLine.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261008191055_InitialCreate")]
+    [Migration("20261008203335_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,9 +44,18 @@ namespace HopInLine.Migrations
                     b.Property<DateTime>("CountDownStart")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DelayEndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("DelayIsStartCountdown")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("GraceTime")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPaused")
                         .HasColumnType("bit");
@@ -68,6 +77,9 @@ namespace HopInLine.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("NextPosition")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StartCountdown")
                         .HasColumnType("int");
 
                     b.Property<int?>("UnpauseRemaining")

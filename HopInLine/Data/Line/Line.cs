@@ -17,6 +17,14 @@ namespace HopInLine.Data.Line
 		public bool AutoReAdd { get; set; }
 		public bool AutoRestartTimerOnAdvance { get; set; } = true;
 		public TimeSpan? UnpauseRemaining { get; set; }
+		/// <summary>Gap between an auto-advance and the start of the next person's interval. Zero means none.</summary>
+		public TimeSpan GraceTime { get; set; }
+		/// <summary>Lead-in before the interval runs when a manager resumes or restarts the timer. Zero means none.</summary>
+		public TimeSpan StartCountdown { get; set; }
+		/// <summary>When the current grace or start-countdown lead-in ends; null when none is running.</summary>
+		public DateTime? DelayEndsAt { get; set; }
+		/// <summary>True when the running lead-in is a start countdown, false when it is grace time.</summary>
+		public bool DelayIsStartCountdown { get; set; }
 
 		//Advance Management
 		public DateTime? NextAdvanceAt { get; set; }
@@ -43,6 +51,10 @@ namespace HopInLine.Data.Line
 		public bool IsPaused { get; set; }
 		public bool AutoRestartTimerOnAdvance { get; set; } = true;
 		public TimeSpan? UnpauseRemaining { get; set; }
+		public TimeSpan GraceTime { get; set; }
+		public TimeSpan StartCountdown { get; set; }
+		public DateTime? DelayEndsAt { get; set; }
+		public bool DelayIsStartCountdown { get; set; }
 		public DateTime? NextAdvanceAt { get; set; }
 		public string ManageToken { get; set; } = "";
 
@@ -59,6 +71,10 @@ namespace HopInLine.Data.Line
 				IsPaused = line.IsPaused,
 				AutoRestartTimerOnAdvance = line.AutoRestartTimerOnAdvance,
 				UnpauseRemaining = line.UnpauseRemaining,
+				GraceTime = line.GraceTime,
+				StartCountdown = line.StartCountdown,
+				DelayEndsAt = line.DelayEndsAt,
+				DelayIsStartCountdown = line.DelayIsStartCountdown,
 				Description = line.Description,
 				LastUpdated = line.LastUpdated,
 				NextAdvanceAt = line.NextAdvanceAt,

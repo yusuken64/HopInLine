@@ -109,7 +109,8 @@ namespace HopInLine.Data.Line
         /// Creates a new line. Returns the real token to its creator.
         /// </summary>
         public async Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
-            bool autoAdvanceLine, TimeSpan autoAdvanceInterval)
+            bool autoAdvanceLine, TimeSpan autoAdvanceInterval,
+            TimeSpan graceTime = default, TimeSpan startCountdown = default)
         {
             Throttle(RateLimitedAction.Create);
 
@@ -129,6 +130,8 @@ namespace HopInLine.Data.Line
             {
                 throw new ArgumentOutOfRangeException(nameof(autoAdvanceInterval), "Auto-advance interval must be between 1 minute and 24 hours.");
             }
+
+            (graceTime, startCountdown) = ValidateDelays(autoAdvanceLine, autoAdvanceInterval, graceTime, startCountdown);
 
             const int maxAttempts = 100;
             int attempt = 0;
@@ -156,6 +159,8 @@ namespace HopInLine.Data.Line
                 AutoAdvanceLine = autoAdvanceLine,
                 AutoAdvanceInterval = autoAdvanceInterval,
                 AutoReAdd = autoReAdd,
+                GraceTime = graceTime,
+                StartCountdown = startCountdown,
                 CountDownStart = DateTime.UtcNow,
                 ManageToken = IdGenerator.GenerateManageToken()
             };
@@ -217,12 +222,34 @@ namespace HopInLine.Data.Line
             return new ParticipantJoinResult(participant.Id, participant.LeaveToken);
         }
 
+        // Grace time and start countdown only apply to auto-advance lines, so they are forced to zero otherwise
+        private static (TimeSpan Grace, TimeSpan Start) ValidateDelays(bool autoAdvanceLine, TimeSpan interval,
+            TimeSpan graceTime, TimeSpan startCountdown)
+        {
+            if (!autoAdvanceLine)
+            {
+                return (TimeSpan.Zero, TimeSpan.Zero);
+            }
+
+            if (graceTime < TimeSpan.Zero || graceTime >= interval)
+            {
+                throw new ArgumentOutOfRangeException(nameof(graceTime), "Grace time must be zero or more and less than the auto-advance interval.");
+            }
+
+            if (startCountdown < TimeSpan.Zero || startCountdown >= interval)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startCountdown), "Start countdown must be zero or more and less than the auto-advance interval.");
+            }
+
+            return (graceTime, startCountdown);
+        }
+
         /// <summary>
         /// Updates a line's settings. Requires valid manageToken.
         /// </summary>
         public async Task UpdateLineAsync(string lineId, string manageToken, string name, string? description,
             bool autoAdvanceLine, bool autoReAdd, bool autoRestartTimerOnAdvance,
-            TimeSpan autoAdvanceInterval)
+            TimeSpan autoAdvanceInterval, TimeSpan graceTime = default, TimeSpan startCountdown = default)
         {
             var line = await AuthorizeAsync(lineId, manageToken);
 
@@ -243,8 +270,12 @@ namespace HopInLine.Data.Line
                 throw new ArgumentOutOfRangeException(nameof(autoAdvanceInterval), "Auto-advance interval must be between 1 minute and 24 hours.");
             }
 
+            (graceTime, startCountdown) = ValidateDelays(autoAdvanceLine, autoAdvanceInterval, graceTime, startCountdown);
+
             line.Name = name;
             line.Description = description;
+            line.GraceTime = graceTime;
+            line.StartCountdown = startCountdown;
             line.AutoAdvanceLine = autoAdvanceLine;
             line.AutoReAdd = autoReAdd;
             line.AutoRestartTimerOnAdvance = autoRestartTimerOnAdvance;
@@ -262,6 +293,7 @@ namespace HopInLine.Data.Line
             if (line.AutoAdvanceLine && !line.IsPaused && line.NextAdvanceAt == null)
             {
                 line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                line.DelayEndsAt = null;
                 line.CountDownStart = DateTime.UtcNow;
             }
 

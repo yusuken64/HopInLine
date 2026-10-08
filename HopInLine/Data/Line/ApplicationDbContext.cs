@@ -30,6 +30,14 @@ public class ApplicationDbContext : DbContext
 			.HasConversion(v => (int)v.TotalSeconds, v => TimeSpan.FromSeconds(v));
 
 		modelBuilder.Entity<Line>()
+			.Property(l => l.GraceTime)
+			.HasConversion(v => (int)v.TotalSeconds, v => TimeSpan.FromSeconds(v));
+
+		modelBuilder.Entity<Line>()
+			.Property(l => l.StartCountdown)
+			.HasConversion(v => (int)v.TotalSeconds, v => TimeSpan.FromSeconds(v));
+
+		modelBuilder.Entity<Line>()
 			.Property(l => l.UnpauseRemaining)
 			.HasConversion(v => v.HasValue ? (int?)v.Value.TotalSeconds : null, v => v.HasValue ? TimeSpan.FromSeconds(v.Value) : null);
 

@@ -53,9 +53,26 @@ namespace HopInLine.Data.Line
             }
             participant.TurnCount++;
 
-            line.NextAdvanceAt = line.AutoRestartTimerOnAdvance ? DateTime.UtcNow + line.AutoAdvanceInterval : null;
+            if (line.AutoRestartTimerOnAdvance)
+            {
+                ScheduleAdvance(line, line.AutoAdvanceInterval, line.GraceTime, isStartCountdown: false);
+            }
+            else
+            {
+                line.NextAdvanceAt = null;
+                line.DelayEndsAt = null;
+            }
             line.IsPaused = !line.AutoRestartTimerOnAdvance;
             line.CountDownStart = DateTime.UtcNow;
+        }
+
+        // Sets the next deadline as a lead-in delay followed by the running time, and records when the lead-in ends
+        private static void ScheduleAdvance(Line line, TimeSpan running, TimeSpan delay, bool isStartCountdown)
+        {
+            var now = DateTime.UtcNow;
+            line.NextAdvanceAt = now + delay + running;
+            line.DelayEndsAt = delay > TimeSpan.Zero ? now + delay : null;
+            line.DelayIsStartCountdown = isStartCountdown;
         }
 
         public async Task AddLineAsync(Line newLine, CancellationToken cancellationToken)
@@ -195,7 +212,7 @@ namespace HopInLine.Data.Line
                 // The first person into an empty line gets a full turn, not whatever was left on the clock
                 if (line.AutoAdvanceLine && !line.IsPaused && !line.Participants.Any(p => !p.Removed))
                 {
-                    line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                    ScheduleAdvance(line, line.AutoAdvanceInterval, TimeSpan.Zero, isStartCountdown: false);
                     line.CountDownStart = DateTime.UtcNow;
                 }
 
@@ -280,6 +297,7 @@ namespace HopInLine.Data.Line
 
                 line.UnpauseRemaining = remaining;
                 line.NextAdvanceAt = null;
+                line.DelayEndsAt = null;
                 line.IsPaused = true;
             });
         }
@@ -292,7 +310,7 @@ namespace HopInLine.Data.Line
                 if (line == null)
                     return;
 
-                line.NextAdvanceAt = DateTime.UtcNow + (line.UnpauseRemaining ?? line.AutoAdvanceInterval);
+                ScheduleAdvance(line, line.UnpauseRemaining ?? line.AutoAdvanceInterval, line.StartCountdown, isStartCountdown: true);
                 line.UnpauseRemaining = null;
                 line.IsPaused = false;
                 line.CountDownStart = DateTime.UtcNow;
@@ -306,7 +324,7 @@ namespace HopInLine.Data.Line
                 var line = await context.Lines.FirstOrDefaultAsync(l => l.Id == lineId);
                 if (line == null) return;
 
-                line.NextAdvanceAt = DateTime.UtcNow + line.AutoAdvanceInterval;
+                ScheduleAdvance(line, line.AutoAdvanceInterval, line.StartCountdown, isStartCountdown: true);
                 line.UnpauseRemaining = null;
                 line.IsPaused = false;
                 line.CountDownStart = DateTime.UtcNow;
@@ -321,6 +339,7 @@ namespace HopInLine.Data.Line
                 if (line == null) return;
 
                 line.NextAdvanceAt = null;
+                line.DelayEndsAt = null;
                 line.UnpauseRemaining = line.AutoAdvanceInterval;
                 line.IsPaused = true;
             });

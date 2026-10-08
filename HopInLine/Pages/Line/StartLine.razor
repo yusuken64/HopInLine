@@ -60,6 +60,14 @@
                         <label for="interval">Minutes per turn</label>
                         <input id="interval" type="number" @bind="intervalMinutes" class="form-control" min="1" max="1440" step="1" />
                     </div>
+                    <div class="form-group">
+                        <label for="graceSeconds">Grace time between turns (seconds, 0 for none)</label>
+                        <input id="graceSeconds" type="number" @bind="graceSeconds" class="form-control" min="0" step="1" />
+                    </div>
+                    <div class="form-group">
+                        <label for="startCountdownSeconds">Start countdown (seconds, 0 for none)</label>
+                        <input id="startCountdownSeconds" type="number" @bind="startCountdownSeconds" class="form-control" min="0" step="1" />
+                    </div>
                 }
                 break;
 
@@ -133,6 +141,8 @@
     private string description = "";
     private LineType lineType = LineType.Simple;
     private int intervalMinutes = 5;
+    private int graceSeconds;
+    private int startCountdownSeconds;
     private string yourName = "";
     private bool joinSelf = true;
 
@@ -162,6 +172,13 @@
             errorMessage = "Minutes per turn must be between 1 and 1440.";
             return;
         }
+        if (step == 1 && lineType != LineType.Simple
+            && (graceSeconds < 0 || graceSeconds >= intervalMinutes * 60
+                || startCountdownSeconds < 0 || startCountdownSeconds >= intervalMinutes * 60))
+        {
+            errorMessage = "Grace time and start countdown must be 0 or more and less than the turn length.";
+            return;
+        }
         step++;
     }
 
@@ -179,7 +196,9 @@
                 autoReAdd: lineType == LineType.Rotation,
                 autoAdvanceLine: lineType != LineType.Simple,
                 // The interval is validated even when auto-advance is off
-                TimeSpan.FromMinutes(lineType == LineType.Simple ? 5 : intervalMinutes));
+                TimeSpan.FromMinutes(lineType == LineType.Simple ? 5 : intervalMinutes),
+                lineType == LineType.Simple ? TimeSpan.Zero : TimeSpan.FromSeconds(graceSeconds),
+                lineType == LineType.Simple ? TimeSpan.Zero : TimeSpan.FromSeconds(startCountdownSeconds));
 
             manageLink = NavigationManager.ToAbsoluteUri($"/manage/{newLine.Id}/{newLine.ManageToken}").ToString();
 

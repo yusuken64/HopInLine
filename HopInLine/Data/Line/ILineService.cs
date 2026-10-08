@@ -27,9 +27,12 @@ namespace HopInLine.Data.Line
 		/// <param name="autoReAdd">Whether removed participants are automatically re-added.</param>
 		/// <param name="autoAdvanceLine">Whether the line automatically advances.</param>
 		/// <param name="autoAdvanceInterval">The interval for automatic advancement.</param>
+		/// <param name="graceTime">Gap between an auto-advance and the next interval starting. Zero for none; ignored (forced to zero) when auto-advance is off.</param>
+		/// <param name="startCountdown">Lead-in before the timer runs after a manager resumes or restarts it. Zero for none; ignored when auto-advance is off.</param>
 		/// <returns>The created <see cref="LineDto"/> including its <see cref="LineDto.ManageToken"/>, so the creator can be shown both the join link and the manage link.</returns>
 		Task<LineDto> CreateLineAsync(string name, string? description, bool autoReAdd,
-										bool autoAdvanceLine, TimeSpan autoAdvanceInterval);
+										bool autoAdvanceLine, TimeSpan autoAdvanceInterval,
+										TimeSpan graceTime = default, TimeSpan startCountdown = default);
 
 		/// <summary>
 		/// Adds a participant to a line by name. No manageToken required; anyone can join.
@@ -54,7 +57,7 @@ namespace HopInLine.Data.Line
 		/// <returns></returns>
 		Task UpdateLineAsync(string lineId, string manageToken, string name, string? description,
 							 bool autoAdvanceLine, bool autoReAdd, bool autoRestartTimerOnAdvance,
-							 TimeSpan autoAdvanceInterval);
+							 TimeSpan autoAdvanceInterval, TimeSpan graceTime = default, TimeSpan startCountdown = default);
 
 		/// <summary>
 		/// Deletes a line. Requires valid manageToken.

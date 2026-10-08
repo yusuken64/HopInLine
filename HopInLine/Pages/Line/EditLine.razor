@@ -59,6 +59,28 @@ else
     </div>
 
     <div class="form-group">
+        <label for="graceSeconds">Grace time between turns (Seconds):</label>
+        <input type="number"
+               id="graceSeconds"
+               @bind="editModel.GraceSeconds"
+               class="form-control"
+               disabled="@(!editModel.AutoAdvanceLine)"
+               min="0"
+               step="1" />
+    </div>
+
+    <div class="form-group">
+        <label for="startCountdownSeconds">Start countdown (Seconds):</label>
+        <input type="number"
+               id="startCountdownSeconds"
+               @bind="editModel.StartCountdownSeconds"
+               class="form-control"
+               disabled="@(!editModel.AutoAdvanceLine)"
+               min="0"
+               step="1" />
+    </div>
+
+    <div class="form-group">
         <label for="autoReAdd">Auto Re-Add:</label>
         <input type="checkbox" id="autoReAdd" @bind="editModel.AutoReAdd" class="form-check-input" />
     </div>
@@ -95,6 +117,8 @@ else
         public bool AutoReAdd { get; set; }
         public bool AutoRestartTimerOnAdvance { get; set; }
         public int AutoAdvanceIntervalMinutes { get; set; }
+        public int GraceSeconds { get; set; }
+        public int StartCountdownSeconds { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -125,7 +149,9 @@ else
                 AutoAdvanceLine = loadedLine.AutoAdvanceLine,
                 AutoReAdd = loadedLine.AutoReAdd,
                 AutoRestartTimerOnAdvance = loadedLine.AutoRestartTimerOnAdvance,
-                AutoAdvanceIntervalMinutes = (int)loadedLine.AutoAdvanceInterval.TotalMinutes
+                AutoAdvanceIntervalMinutes = (int)loadedLine.AutoAdvanceInterval.TotalMinutes,
+                GraceSeconds = (int)loadedLine.GraceTime.TotalSeconds,
+                StartCountdownSeconds = (int)loadedLine.StartCountdown.TotalSeconds
             };
         }
         catch (Exception ex)
@@ -144,6 +170,15 @@ else
             return;
         }
 
+        var intervalSeconds = editModel.AutoAdvanceIntervalMinutes * 60;
+        if (editModel.AutoAdvanceLine
+            && (editModel.GraceSeconds < 0 || editModel.GraceSeconds >= intervalSeconds
+                || editModel.StartCountdownSeconds < 0 || editModel.StartCountdownSeconds >= intervalSeconds))
+        {
+            errorMessage = "Grace time and start countdown must be 0 or more and less than the interval.";
+            return;
+        }
+
         try
         {
             await LineServiceInterface.UpdateLineAsync(
@@ -154,7 +189,9 @@ else
                 editModel.AutoAdvanceLine,
                 editModel.AutoReAdd,
                 editModel.AutoRestartTimerOnAdvance,
-                TimeSpan.FromMinutes(editModel.AutoAdvanceIntervalMinutes)
+                TimeSpan.FromMinutes(editModel.AutoAdvanceIntervalMinutes),
+                TimeSpan.FromSeconds(editModel.GraceSeconds),
+                TimeSpan.FromSeconds(editModel.StartCountdownSeconds)
             );
 
             NavigationManager.NavigateTo($"/manage/{LineId}/{ManageToken}");
