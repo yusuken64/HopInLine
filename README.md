@@ -1,5 +1,9 @@
 HopInLine is a collaborative queue management app. See a demo: https://www.youtube.com/watch?v=jDm82qOTa94
 
+[![HopInLine feature tour (click to play)](docs/feature-tour.png)](docs/feature-tour.mp4)
+
+*Feature tour video: click the image to play.*
+
 ## Line Access Model
 
 A line has two URLs with different privileges:
