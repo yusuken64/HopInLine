@@ -17,6 +17,13 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    // Lets provider-specific subclasses (see SqliteApplicationDbContext) share this model
+    // while keeping their own migrations.
+    protected ApplicationDbContext(DbContextOptions options)
+        : base(options)
+    {
+    }
+
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
 		base.OnModelCreating(modelBuilder);

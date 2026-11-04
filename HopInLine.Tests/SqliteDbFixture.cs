@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using HopInLine.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace HopInLine.Tests;
@@ -21,11 +22,10 @@ public sealed class SqliteDbFixture : IDisposable, IDbContextFactory<Application
             .UseSqlite(_connection)
             .Options;
 
-        // Create the schema with EnsureCreated, not Migrate. The migrations target SQL Server
-        // and contain raw T-SQL that SQLite cannot run.
-        using (var context = new ApplicationDbContext(options))
+        // Apply the real SQLite migrations so the tests also catch a schema that drifted from the model.
+        using (var context = new SqliteApplicationDbContext(options))
         {
-            context.Database.EnsureCreated();
+            context.Database.Migrate();
         }
 
         _options = options;
@@ -33,7 +33,7 @@ public sealed class SqliteDbFixture : IDisposable, IDbContextFactory<Application
 
     private readonly DbContextOptions<ApplicationDbContext> _options;
 
-    public ApplicationDbContext CreateContext() => new(_options);
+    public ApplicationDbContext CreateContext() => new SqliteApplicationDbContext(_options);
 
     ApplicationDbContext IDbContextFactory<ApplicationDbContext>.CreateDbContext() => CreateContext();
 

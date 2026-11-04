@@ -1,0 +1,8 @@
+# Caddy gets and renews a Let's Encrypt certificate for $DOMAIN automatically.
+# DOMAIN must point (DNS A/AAAA record) at this server, and ports 80 and 443 must be open.
+{$DOMAIN} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	# Handles Blazor's WebSocket connection too
+	reverse_proxy web:8080
+}

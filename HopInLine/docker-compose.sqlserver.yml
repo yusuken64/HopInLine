@@ -7,9 +7,10 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - Database__Provider=SqlServer
       - AllowedHosts=${ALLOWED_HOSTS:-*}
       # The app connects with a least-privilege login; migrations run separately in "migrate"
-      - ConnectionStrings__DefaultConnection=Server=db;Database=hopinline;User=hopinline_app;Password=${APP_DB_PASSWORD};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}
+      - ConnectionStrings__DefaultConnection=Server=db;Database=hopinline;User=hopinline_app;Password=${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}
       - Database__MigrateOnStartup=false
       - ForwardedHeaders__KnownProxies__0=${TRUSTED_PROXY:-}
       - ForwardedHeaders__KnownNetworks__0=${TRUSTED_NETWORK:-}
@@ -18,14 +19,14 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     volumes:
-      - dataprotection:/home/app/.aspnet/DataProtection-Keys
+      - dataprotection:/data/keys
 
   # Applies EF migrations as sa, then exits
   migrate:
     build:
       context: .
       target: migrator
-    command: ["--connection", "Server=db;Database=hopinline;User=sa;Password=${SA_PASSWORD};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}"]
+    command: ["--connection", "Server=db;Database=hopinline;User=sa;Password=${SA_PASSWORD:?Set SA_PASSWORD in .env};Encrypt=True;TrustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:-True}"]
     depends_on:
       db:
         condition: service_healthy

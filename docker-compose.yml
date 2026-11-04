@@ -1,0 +1,59 @@
+# Self-hosting HopInLine. See "Self-Hosting" in README.md.
+#
+#   docker compose up -d
+#
+# Serves plain HTTP on port 8080. For HTTPS on your own domain, set DOMAIN and
+# COMPOSE_PROFILES=https in .env (see .env.example) and run the same command.
+#
+# Everything (SQLite database, keys) lives in the "hopinline-data" volume.
+
+services:
+  web:
+    image: ghcr.io/yusuken64/hopinline:${HOPINLINE_VERSION:-latest}
+    # Used only with "docker compose up --build" (e.g. after changing the code)
+    build:
+      context: ./HopInLine
+      target: final
+    environment:
+      - AllowedHosts=${ALLOWED_HOSTS:-*}
+      # Trust X-Forwarded-For only from the Caddy container below, so clients can't spoof their IP
+      - ForwardedHeaders__KnownProxies__0=172.30.77.10
+    ports:
+      # With the https profile, set HOPINLINE_BIND=127.0.0.1 so the app is only reachable through Caddy
+      - "${HOPINLINE_BIND:-0.0.0.0}:${HOPINLINE_PORT:-8080}:8080"
+    volumes:
+      - hopinline-data:/data
+    networks:
+      hopinline:
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    environment:
+      - DOMAIN=${DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      hopinline:
+        ipv4_address: 172.30.77.10
+    depends_on:
+      - web
+    restart: unless-stopped
+
+networks:
+  hopinline:
+    ipam:
+      config:
+        - subnet: 172.30.77.0/24
+
+volumes:
+  hopinline-data:
+  caddy-data:
+  caddy-config:

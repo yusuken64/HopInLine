@@ -6,3 +6,6 @@ obj
 .vs/
 .env
 *.user
+*.db
+*.db-shm
+*.db-wal

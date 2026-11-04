@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +17,32 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Database:Provider picks the database. SQLite needs no server, so it's the default in the
+// Docker image; SQL Server suits larger or multi-instance deployments.
+var dbProvider = builder.Configuration["Database:Provider"] ?? "SqlServer";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var useSqlite = dbProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase);
+if (useSqlite)
+{
+    builder.Services.AddDbContextFactory<ApplicationDbContext, SqliteDbContextFactory>(options =>
+        options.UseSqlite(string.IsNullOrWhiteSpace(connectionString) ? "Data Source=hopinline.db" : connectionString));
+}
+else if (dbProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
+else
+{
+    throw new InvalidOperationException($"Unknown Database:Provider '{dbProvider}'. Use 'Sqlite' or 'SqlServer'.");
+}
+
+// Keeps login-free browser sessions valid across restarts when keys live on a mounted volume.
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 
 builder.Services.AddScoped<ILineRepository, SQLLineRepository>();
 builder.Services.AddScoped<ILineService, LineService>();
@@ -42,6 +67,15 @@ var hasHttps = (!string.IsNullOrEmpty(httpsUrls) && httpsUrls.Contains("https"))
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // For hosts like Azure App Service whose front-end IPs aren't known in advance. Only safe when
+    // the app can't be reached except through that proxy. ForwardLimit stays 1, so only the
+    // address the proxy itself appended is used.
+    if (builder.Configuration.GetValue("ForwardedHeaders:TrustAllProxies", false))
+    {
+        o.KnownProxies.Clear();
+        o.KnownIPNetworks.Clear();
+    }
 
     foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()?.Where(s => !string.IsNullOrWhiteSpace(s)) ?? [])
     {
@@ -116,6 +150,11 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 	var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
 	using var db = factory.CreateDbContext();
 	db.Database.Migrate();
+	if (useSqlite)
+	{
+		// Write-ahead logging lets readers keep going while the auto-advance sweep writes.
+		db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+	}
 }
 
 app.Run();

@@ -1,0 +1,122 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "HopInLine on Azure App Service (Linux container) with an Azure SQL Basic database. Roughly $18/month: B1 App Service plan (~$13) + SQL Basic (~$5)."
+  },
+  "parameters": {
+    "appName": {
+      "type": "string",
+      "defaultValue": "[concat('hopinline-', uniqueString(resourceGroup().id))]",
+      "maxLength": 40,
+      "metadata": { "description": "Becomes https://<appName>.azurewebsites.net, so it must be globally unique." }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "sqlAdminLogin": {
+      "type": "string",
+      "defaultValue": "hopinlineadmin",
+      "metadata": { "description": "Administrator login for the new Azure SQL server." }
+    },
+    "sqlAdminPassword": {
+      "type": "securestring",
+      "minLength": 12,
+      "metadata": { "description": "At least 12 characters, with three of: uppercase, lowercase, digits, symbols. Don't use a semicolon." }
+    },
+    "imageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": { "description": "Tag of ghcr.io/yusuken64/hopinline to run." }
+    },
+    "appServiceSku": {
+      "type": "string",
+      "defaultValue": "B1",
+      "allowedValues": [ "B1", "B2", "S1", "P0v3", "P1v3" ],
+      "metadata": { "description": "B1 or above: the app needs Always On so auto-advance keeps running." }
+    }
+  },
+  "variables": {
+    "planName": "[concat(parameters('appName'), '-plan')]",
+    "sqlServerName": "[concat(parameters('appName'), '-sql')]",
+    "databaseName": "hopinline"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "administratorLogin": "[parameters('sqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
+        "minimalTlsVersion": "1.2",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[concat(variables('sqlServerName'), '/AllowAzureServices')]",
+      "dependsOn": [ "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]" ],
+      "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "0.0.0.0" }
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[concat(variables('sqlServerName'), '/', variables('databaseName'))]",
+      "location": "[parameters('location')]",
+      "dependsOn": [ "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]" ],
+      "sku": { "name": "Basic", "tier": "Basic" }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('planName')]",
+      "location": "[parameters('location')]",
+      "kind": "linux",
+      "sku": { "name": "[parameters('appServiceSku')]" },
+      "properties": { "reserved": true }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-12-01",
+      "name": "[parameters('appName')]",
+      "location": "[parameters('location')]",
+      "kind": "app,linux,container",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]",
+        "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('databaseName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]",
+        "httpsOnly": true,
+        "clientAffinityEnabled": true,
+        "siteConfig": {
+          "linuxFxVersion": "[concat('DOCKER|ghcr.io/yusuken64/hopinline:', parameters('imageTag'))]",
+          "alwaysOn": true,
+          "webSocketsEnabled": true,
+          "http20Enabled": true,
+          "minTlsVersion": "1.2",
+          "ftpsState": "Disabled",
+          "healthCheckPath": "/healthz",
+          "appSettings": [
+            { "name": "WEBSITES_PORT", "value": "8080" },
+            { "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE", "value": "false" },
+            { "name": "DOCKER_REGISTRY_SERVER_URL", "value": "https://ghcr.io" },
+            { "name": "Database__Provider", "value": "SqlServer" },
+            { "name": "ConnectionStrings__DefaultConnection", "value": "[concat('Server=tcp:', reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName, ',1433;Database=', variables('databaseName'), ';User ID=', parameters('sqlAdminLogin'), ';Password=', parameters('sqlAdminPassword'), ';Encrypt=True;TrustServerCertificate=False;Connection Timeout=60')]" },
+            { "name": "ForwardedHeaders__TrustAllProxies", "value": "true" }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "appUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('appName'))).defaultHostName)]"
+    }
+  }
+}
