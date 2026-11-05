@@ -1,4 +1,4 @@
-HopInLine is a collaborative queue management app. See a demo: https://www.youtube.com/watch?v=jDm82qOTa94
+HopInLine is a collaborative queue management app. See a demo: https://www.youtube.com/watch?v=EdSlyLtdO0w
 
 [![HopInLine feature tour (click to play)](docs/feature-tour.png)](docs/feature-tour.mp4)
 
