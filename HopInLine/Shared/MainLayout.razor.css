@@ -1,13 +1,36 @@
+/* Header + page fill exactly one screen, so pages can size themselves to the space under the header */
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+
 main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .top-row {
     display: flex;
     align-items: center;
+    gap: var(--space-3) var(--space-5);
     min-height: 4.5rem;
     padding: var(--space-3) var(--space-5);
     background-color: var(--red);
     border-bottom: var(--border-chunky);
     box-shadow: 0 0.3rem 0 rgba(27, 35, 80, 0.25);
+}
+
+@media (max-width: 640px) {
+    .top-row {
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-3);
+    }
 }

@@ -1,7 +1,8 @@
+/* Start and Join fit on one screen, laptop to phone, with no scrolling. "Your lines" may scroll below. */
 .home-doors {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
-    gap: var(--space-6);
+    gap: var(--space-5);
     margin-bottom: var(--space-6);
 }
 
@@ -11,6 +12,16 @@
     align-items: center;
     text-align: center;
     margin-bottom: 0;
+    padding: var(--space-5) var(--space-6);
+}
+
+/* Icon and heading side by side keeps each door short */
+.home-door-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
 }
 
 .home-door-start {
@@ -24,10 +35,10 @@
 .home-door-icon {
     display: grid;
     place-items: center;
-    width: 6rem;
-    height: 6rem;
-    margin-bottom: var(--space-4);
-    font-size: 3.5rem;
+    flex-shrink: 0;
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: 2.5rem;
     line-height: 1;
     background-color: var(--paper);
     border: var(--border-chunky);
@@ -36,19 +47,19 @@
 }
 
 .home-door h2 {
-    margin: 0 0 var(--space-3);
+    margin: 0;
 }
 
 .home-door-text {
     flex: 1;
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-4);
     font-size: var(--font-size-lg);
 }
 
 .home-join-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-3);
     width: 100%;
     text-align: left;
 }
@@ -74,6 +85,49 @@
     font-size: var(--font-size-lg);
     letter-spacing: normal;
     text-transform: none;
+}
+
+.home-intro {
+    margin-bottom: var(--space-5);
+}
+
+.home-intro .page-title {
+    margin-bottom: var(--space-2);
+}
+
+.home-intro .page-subtitle {
+    max-width: 48rem;
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .home-doors {
+        gap: var(--space-4);
+    }
+
+    .home-door {
+        padding: var(--space-4);
+    }
+
+    .home-door-icon {
+        width: 3.25rem;
+        height: 3.25rem;
+        font-size: 1.75rem;
+    }
+
+    .home-door-head {
+        gap: var(--space-3);
+        margin-bottom: var(--space-2);
+    }
+
+    .home-door-text {
+        margin-bottom: var(--space-3);
+        font-size: var(--font-size-base);
+    }
+
+    .home-intro .page-subtitle {
+        font-size: var(--font-size-base);
+    }
 }
 
 .recent-hint {

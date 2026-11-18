@@ -1,7 +1,7 @@
 @using Microsoft.AspNetCore.Components.Web
 
 @* A labeled "More" button that opens a list of big menu items. *@
-<div class="kebab-menu">
+<div class="kebab-menu @(OpenUp ? "kebab-up" : "") @(AlignStart ? "kebab-start" : "")">
     <button
         @onclick="() => isOpen = !isOpen"
         @onkeydown="HandleKeyDown"
@@ -9,8 +9,15 @@
         aria-expanded="@(isOpen ? "true" : "false")"
         aria-label="@TriggerAriaLabel"
         disabled="@Disabled"
-        class="btn btn-secondary btn-sm kebab-trigger @(isOpen ? "open" : "")">
-        @TriggerLabel
+        class="@TriggerClass kebab-trigger @(isOpen ? "open" : "")">
+        @if (TriggerContent is not null)
+        {
+            @TriggerContent
+        }
+        else
+        {
+            @TriggerLabel
+        }
     </button>
 
     @if (isOpen)
@@ -46,6 +53,21 @@
     /// <summary>Visible text on the button. Spelled out so nobody has to guess what "⋮" means.</summary>
     [Parameter]
     public string TriggerLabel { get; set; } = "⋯ More";
+
+    /// <summary>Optional richer trigger content. Replaces <see cref="TriggerLabel"/> when set.</summary>
+    [Parameter]
+    public RenderFragment? TriggerContent { get; set; }
+
+    [Parameter]
+    public string TriggerClass { get; set; } = "btn btn-secondary btn-sm";
+
+    /// <summary>Opens the menu above the trigger, for menus at the bottom of the screen.</summary>
+    [Parameter]
+    public bool OpenUp { get; set; }
+
+    /// <summary>Lines the menu up with the trigger's left edge instead of its right edge.</summary>
+    [Parameter]
+    public bool AlignStart { get; set; }
 
     [Parameter]
     public bool Disabled { get; set; }

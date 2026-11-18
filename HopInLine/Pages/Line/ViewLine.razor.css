@@ -1,7 +1,8 @@
+/* Fills the space under the top bar (MainLayout is a full-height column), so the dock sits at the bottom */
 .view-line-shell {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    flex: 1;
     transition: padding-left var(--transition-base) var(--ease-standard);
 }
 
@@ -10,75 +11,87 @@
     flex: 1;
 }
 
-/* ---------- Line header: name, head count, Invite / Settings ---------- */
+/* ---------- Line details in the red top bar: name, head count + description, Invite / Settings ---------- */
 
-.line-header {
-    text-align: center;
-    margin-bottom: var(--space-6);
-}
-
-.line-title {
-    margin-bottom: var(--space-2);
-}
-
-.line-description {
-    max-width: 44rem;
-    margin: 0 auto var(--space-4);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-medium);
-    overflow-wrap: anywhere;
-}
-
-.line-header-actions {
+.topbar-line {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1;
     align-items: center;
-    justify-content: center;
-    gap: var(--space-3) var(--space-4);
-    margin-top: var(--space-4);
+    gap: var(--space-3) var(--space-5);
+    min-width: 0;
+    padding-left: var(--space-5);
+    border-left: 0.2rem solid rgba(255, 255, 255, 0.45);
 }
 
-/* Wide screens and TVs: header on one row, so the board and the line get the height */
-@media (min-width: 1200px) {
-    .view-line-shell.has-stage .line-header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: var(--space-3) var(--space-5);
-        margin-bottom: var(--space-5);
-        text-align: left;
-    }
+.topbar-line-text {
+    flex: 1;
+    min-width: 0;
+    color: var(--paper);
+}
 
-    .view-line-shell.has-stage .line-title {
-        flex: 1 1 auto;
-        margin: 0;
-        text-align: left;
-    }
-
-    .view-line-shell.has-stage .line-header-actions {
-        margin-top: 0;
-    }
-
-    .view-line-shell.has-stage .line-description {
-        order: 3;
-        flex-basis: 100%;
-        max-width: none;
-        margin: 0;
-    }
+.topbar-line-name {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    line-height: 1.15;
+    color: var(--paper);
+    text-shadow: 0.1rem 0.15rem 0 var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Plain text, so it never looks like something to press */
-.line-count {
+.topbar-line-meta {
     margin: 0;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-@media (max-width: 540px) {
-    .line-header-actions .btn {
-        flex: 1 1 0;
-        padding-left: var(--space-2);
-        padding-right: var(--space-2);
+.topbar-line-desc {
+    font-weight: var(--font-weight-medium);
+}
+
+.topbar-line-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--space-3);
+}
+
+.topbar-line-actions .btn {
+    gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+    .topbar-line {
+        gap: var(--space-2);
+        padding-left: var(--space-3);
+    }
+
+    .topbar-line-name {
+        font-size: var(--font-size-lg);
+    }
+
+    .topbar-line-actions {
+        gap: var(--space-2);
+    }
+
+    /* Icon-only buttons on phones; the label stays for screen readers */
+    .topbar-line-actions .btn {
+        min-width: 3rem;
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
+    }
+
+    .topbar-btn-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
     }
 }
 
@@ -315,53 +328,92 @@
 
 .toolbar-inner {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3) var(--space-5);
+    gap: var(--space-3);
 }
 
-.toolbar-me {
-    display: flex;
-    flex-wrap: wrap;
+/* Your name and place, as one button. Its menu (KebabMenu) holds Change name, My note and Leave line. */
+.toolbar-inner ::deep .toolbar-me-chip {
+    display: inline-flex;
     align-items: center;
-    gap: var(--space-3) var(--space-4);
-}
-
-.toolbar-who,
-.toolbar-place {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0 var(--space-2);
-}
-
-.toolbar-place {
-    padding: var(--space-2) var(--space-4);
+    gap: var(--space-3);
+    min-width: 0;
+    max-width: 100%;
+    min-height: 3.5rem;
+    padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+    font-family: inherit;
+    text-align: left;
+    color: var(--ink);
     background-color: var(--blue-50);
     border: 0.15rem solid var(--ink);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-pill, 999px);
+    box-shadow: var(--shadow-sm, 0 0.2rem 0 var(--ink));
+    cursor: pointer;
 }
 
-.toolbar-place.is-up {
+.toolbar-inner ::deep .toolbar-me-chip:hover,
+.toolbar-inner ::deep .toolbar-me-chip:focus-visible {
+    background-color: var(--paper);
+}
+
+.toolbar-inner ::deep .kebab-menu {
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+.me-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 var(--space-2);
+    font-weight: var(--font-weight-bold);
+    background-color: var(--paper);
+    border: 0.15rem solid var(--ink);
+    border-radius: 999px;
+}
+
+.me-badge.is-up {
     background-color: var(--yellow);
 }
 
-.toolbar-label {
+.me-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.me-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.me-status {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--ink-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.toolbar-value {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    overflow-wrap: anywhere;
-}
-
-.toolbar-ahead {
+.me-caret {
+    flex-shrink: 0;
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    color: var(--ink-soft);
+}
+
+.toolbar-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--space-3);
 }
 
 .toolbar-join,
@@ -372,35 +424,35 @@
 @media (max-width: 640px) {
     .toolbar {
         bottom: var(--space-2);
-        padding: var(--space-3);
+        padding: var(--space-2);
     }
 
-    .toolbar-inner,
-    .toolbar-me {
-        gap: var(--space-3);
-    }
-
-    .toolbar-me,
     .toolbar-inner {
-        width: 100%;
+        gap: var(--space-2);
     }
 
-    .toolbar-place {
+    .toolbar-inner ::deep .kebab-menu {
         flex: 1 1 auto;
     }
 
-    .toolbar-ahead {
-        flex-basis: 100%;
+    .toolbar-inner ::deep .toolbar-me-chip {
+        width: 100%;
+        min-height: 3.25rem;
+        padding-right: var(--space-3);
+        gap: var(--space-2);
     }
 
-    .toolbar-value {
-        font-size: var(--font-size-base);
+    .me-badge {
+        min-width: 2.25rem;
+        height: 2.25rem;
     }
 
     .toolbar-join,
     .toolbar-advance {
-        width: 100%;
         min-width: 0;
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+        white-space: nowrap;
     }
 }
 
@@ -587,4 +639,80 @@
 .note-input {
     text-align: left;
     resize: vertical;
+}
+
+/* ---------- Tighter list cards, so the line fits on one screen for longer ---------- */
+
+.queue-card {
+    padding: var(--space-5);
+}
+
+.queue-card > h2.queue-heading {
+    margin-bottom: var(--space-4);
+}
+
+.history-card {
+    padding: var(--space-4) var(--space-5);
+}
+
+.history-card #history-list {
+    margin-top: var(--space-3);
+}
+
+.history-empty {
+    font-size: var(--font-size-sm);
+}
+
+/* ---------- Phones: smaller board and timer buttons, and a dock that keeps your name readable ---------- */
+@media (max-width: 640px) {
+    .scoreboard {
+        margin-bottom: var(--space-4);
+        padding: var(--space-3) var(--space-4) var(--space-4);
+    }
+
+    .scoreboard-controls {
+        margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+    }
+
+    .timer-controls {
+        flex-wrap: nowrap;
+        gap: var(--space-2);
+    }
+
+    .timer-controls .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--font-size-sm);
+        white-space: nowrap;
+    }
+
+    .queue-card {
+        padding: var(--space-4) var(--space-3);
+    }
+
+    .history-card {
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .toolbar-actions {
+        flex-shrink: 1;
+    }
+}
+
+/* Very narrow: "Next ▶" leaves room for your name */
+@media (max-width: 420px) {
+    .advance-full {
+        display: none;
+    }
+}
+
+.advance-short {
+    display: none;
+}
+
+@media (max-width: 420px) {
+    .advance-short {
+        display: inline;
+    }
 }

@@ -122,27 +122,34 @@ else
 
 	<div class="view-line-shell @(panelOpen ? "panel-open" : "") @(hasStage ? "has-stage" : "")">
 		<div class="page view-line-content">
-			<header class="line-header">
-				<h1 class="page-title line-title">@line.Name</h1>
-				@if (!string.IsNullOrWhiteSpace(line.Description))
-				{
-					<p class="line-description">@line.Description</p>
-				}
-				<p class="line-count">👥 @PeopleText(queue.Count)</p>
-				<div class="line-header-actions">
-					<button class="btn btn-primary" @onclick="() => OpenPanel(PanelTab.Invite)"
-							aria-expanded="@(panelOpen && panelTab == PanelTab.Invite ? "true" : "false")">
-						📣 Invite people
-					</button>
-					@if (canManage)
-					{
-						<button class="btn btn-secondary" @onclick="() => OpenPanel(PanelTab.Settings)"
-								aria-expanded="@(panelOpen && panelTab == PanelTab.Settings ? "true" : "false")">
-							⚙️ Settings
+			@* Name, head count and Invite / Settings live in the red top bar, so the board and the line get the screen *@
+			<SectionContent SectionName="top-bar">
+				<div class="topbar-line">
+					<div class="topbar-line-text">
+						<h1 class="topbar-line-name">@line.Name</h1>
+						<p class="topbar-line-meta">
+							<span class="topbar-line-count">👥 @PeopleText(queue.Count)</span>
+							@if (!string.IsNullOrWhiteSpace(line.Description))
+							{
+								<span class="topbar-line-desc">· @line.Description</span>
+							}
+						</p>
+					</div>
+					<div class="topbar-line-actions">
+						<button class="btn btn-primary" @onclick="() => OpenPanel(PanelTab.Invite)"
+								aria-expanded="@(panelOpen && panelTab == PanelTab.Invite ? "true" : "false")">
+							<span aria-hidden="true">📣</span><span class="topbar-btn-label">Invite people</span>
 						</button>
-					}
+						@if (canManage)
+						{
+							<button class="btn btn-secondary" @onclick="() => OpenPanel(PanelTab.Settings)"
+									aria-expanded="@(panelOpen && panelTab == PanelTab.Settings ? "true" : "false")">
+								<span aria-hidden="true">⚙️</span><span class="topbar-btn-label">Settings</span>
+							</button>
+						}
+					</div>
 				</div>
-			</header>
+			</SectionContent>
 
 			@if (!string.IsNullOrEmpty(errorMessage))
 			{
@@ -189,10 +196,14 @@ else
 					<div class="queue-empty">
 						<div class="queue-empty-icon" aria-hidden="true">🦗</div>
 						<p class="queue-empty-title">Nobody's in line yet.</p>
-						<p>Press <strong>🙋 Hop in line!</strong> at the bottom to go first.</p>
 						@if (canManage)
 						{
-							<p>Or use <strong>📣 Invite people</strong> to add someone.</p>
+							<p>Use <strong>📣 Invite people</strong> to add someone.</p>
+							<p>Taking a turn yourself? Tap your name at the bottom.</p>
+						}
+						else
+						{
+							<p>Press <strong>🙋 Hop in line!</strong> at the bottom to go first.</p>
 						}
 					</div>
 				}
@@ -228,6 +239,9 @@ else
 				}
 			</section>
 
+			@* Only once someone is out of line, so an empty explainer card doesn't push the line off screen *@
+			@if (line.RemovedParticipants is { Count: > 0 })
+			{
 			<section class="page-card history-card" aria-labelledby="history-heading">
 				<div class="history-header">
 					<h2 id="history-heading" class="history-heading">
@@ -270,44 +284,35 @@ else
 					</div>
 				}
 			</section>
+			}
 			</div>
 			</div>
 		</div>
 
 		<div class="toolbar">
 			<div class="toolbar-inner">
-				<div class="toolbar-me">
-					<div class="toolbar-who">
-						<span class="toolbar-label">You are</span>
-						<span class="toolbar-value">@(myName ?? "…")</span>
-						<button @onclick="OpenNamePrompt" class="btn btn-secondary btn-sm">✏️ Change name</button>
-					</div>
-					@if (MyPosition is int position)
-					{
-						<div class="toolbar-place @(position == 1 ? "is-up" : "")">
-							@if (position == 1)
-							{
-								<span class="toolbar-value">🎉 It's your turn!</span>
-							}
-							else
-							{
-								<span class="toolbar-label">Your place</span>
-								<span class="toolbar-value">#@position</span>
-								<span class="toolbar-ahead">@AheadText(position - 1)</span>
-							}
-						</div>
-						<button @onclick="OpenOwnNotePrompt" class="btn btn-secondary" disabled="@busy">📝 My note</button>
-						<button @onclick="LeaveLine" class="btn btn-secondary" disabled="@busy">👋 Leave line</button>
-					}
-					else
+				@* One compact row. Your name and place sit on a chip; tapping it opens your own options. *@
+				<KebabMenu TriggerAriaLabel="@MeChipAriaLabel" TriggerClass="toolbar-me-chip" OpenUp="true" AlignStart="true"
+						   Items="@GetMeMenuItems()" Disabled="@busy">
+					<TriggerContent>
+						<span class="me-badge @(MyPosition == 1 ? "is-up" : "")" aria-hidden="true">@(MyPosition is int p ? (p == 1 ? "⭐" : $"#{p}") : "🙂")</span>
+						<span class="me-text">
+							<span class="me-name">@(myName ?? "Set your name")</span>
+							<span class="me-status">@MeStatusText</span>
+						</span>
+						<span class="me-caret" aria-hidden="true">▴</span>
+					</TriggerContent>
+				</KebabMenu>
+				<div class="toolbar-actions">
+					@if (MyPosition is null && !canManage)
 					{
 						<button @onclick="JoinLine" class="btn btn-success btn-lg toolbar-join" disabled="@(busy || myName is null)">🙋 Hop in line!</button>
 					}
+					@if (canManage)
+					{
+						<button @onclick="AdvanceLine" class="btn btn-warning btn-lg toolbar-advance" disabled="@busy" aria-label="Next person"><span class="advance-full">Next person ▶</span><span class="advance-short" aria-hidden="true">Next ▶</span></button>
+					}
 				</div>
-				@if (canManage)
-				{
-					<button @onclick="AdvanceLine" class="btn btn-warning btn-lg toolbar-advance" disabled="@busy">Next person ▶</button>
-				}
 			</div>
 		</div>
 	</div>
@@ -438,6 +443,35 @@ else
 		_ => $"{count} people in line"
 	};
 
+	private string MeStatusText => MyPosition switch
+	{
+		1 => "It's your turn!",
+		int p => AheadText(p - 1),
+		null => "Not in line"
+	};
+
+	private string MeChipAriaLabel => $"You: {myName ?? "no name yet"}, {(MyPosition is int p ? $"number {p} in line, " : "")}{MeStatusText}. Your options";
+
+	// Your own options, from the chip in the bottom dock
+	private List<KebabMenuItem> GetMeMenuItems()
+	{
+		var items = new List<KebabMenuItem>();
+		if (MyPosition is not null)
+		{
+			items.Add(new KebabMenuItem { Label = "📝 My note", OnClick = EventCallback.Factory.Create(this, OpenOwnNotePrompt) });
+		}
+		else if (canManage)
+		{
+			items.Add(new KebabMenuItem { Label = "🙋 Hop in line!", OnClick = EventCallback.Factory.Create(this, JoinLine) });
+		}
+		items.Add(new KebabMenuItem { Label = "✏️ Change name", OnClick = EventCallback.Factory.Create(this, OpenNamePrompt) });
+		if (MyPosition is not null)
+		{
+			items.Add(new KebabMenuItem { Label = "👋 Leave line", OnClick = EventCallback.Factory.Create(this, LeaveLine), IsDangerous = true });
+		}
+		return items;
+	}
+
 	private static string AheadText(int count) => count == 1 ? "1 person ahead of you" : $"{count} people ahead of you";
 
 	// Pause/resume, restart and reset. Shown under the clock and in the Settings panel.
@@ -551,7 +585,9 @@ else
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if (firstRender && !_hasSavedRecentLine && line is not null)
+		// Not only on the first render: the line usually finishes loading after it, and then this never ran,
+		// leaving "You are …" and losing the saved name and place.
+		if (!_hasSavedRecentLine && line is not null)
 		{
 			_hasSavedRecentLine = true;
 			try

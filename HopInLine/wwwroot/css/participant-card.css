@@ -135,3 +135,77 @@
         padding-right: var(--space-1);
     }
 }
+
+/* ---------- One row per person wherever the list is wide enough, so more people fit without scrolling ---------- */
+
+.queue-list {
+    container-type: inline-size;
+}
+
+.participant-card.is-up {
+    padding: var(--space-4) var(--space-5);
+}
+
+/* Name and tags on top; turns and the buttons share the second row */
+@container (min-width: 22rem) {
+    .participant-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "place name  name"
+            "place desc  desc"
+            "place turns actions";
+        align-items: center;
+        gap: var(--space-1) var(--space-4);
+    }
+
+    .participant-place { grid-area: place; }
+    .participant-info { display: contents; }
+    .participant-name-row { grid-area: name; }
+    .participant-desc { grid-area: desc; margin: 0; }
+    .participant-turns { grid-area: turns; margin: 0; }
+
+    .participant-actions {
+        grid-area: actions;
+        flex-wrap: nowrap;
+        margin-left: 0;
+    }
+}
+
+/* Narrower lists: Up and Down show just their arrows (their aria-labels still say "Move … up/down") */
+@container (max-width: 44rem) {
+    .participant-actions .btn-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .participant-actions .btn {
+        gap: 0;
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
+    }
+}
+
+/* Phones: smaller place circle and tags so each person takes less height */
+@media (max-width: 640px) {
+    .participant-place,
+    .is-up .participant-place {
+        width: 3rem;
+        height: 3rem;
+        font-size: var(--font-size-lg);
+    }
+
+    .participant-name-row .tag {
+        font-size: var(--font-size-xs, 0.8rem);
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .participant-actions .btn {
+        min-height: 2.75rem;
+    }
+}

@@ -15,8 +15,8 @@
     @if (CanManage)
     {
         <div class="participant-actions">
-            <button class="btn btn-success btn-sm" @onclick="ReAdd" disabled="@Disabled" aria-label="@($"Add {Name} back to the line")">↩️ Put back in line</button>
-            <button class="btn btn-outline-danger btn-sm" @onclick="Delete" disabled="@Disabled" aria-label="@($"Permanently delete {Name}")">🗑️ Delete</button>
+            <button class="btn btn-success btn-sm" @onclick="ReAdd" disabled="@Disabled" aria-label="@($"Add {Name} back to the line")"><span aria-hidden="true">↩️</span><span class="btn-label">Put back in line</span></button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="Delete" disabled="@Disabled" aria-label="@($"Permanently delete {Name}")"><span aria-hidden="true">🗑️</span><span class="btn-label">Delete</span></button>
         </div>
     }
 </li>

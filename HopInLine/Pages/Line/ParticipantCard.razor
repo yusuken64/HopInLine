@@ -23,8 +23,8 @@
     @if (CanManage)
     {
         <div class="participant-actions">
-            <button class="btn btn-secondary btn-sm" @onclick="MoveUp" disabled="@(Disabled || !CanMoveUp)" aria-label="@($"Move {Name} up")">⬆️ Up</button>
-            <button class="btn btn-secondary btn-sm" @onclick="MoveDown" disabled="@(Disabled || !CanMoveDown)" aria-label="@($"Move {Name} down")">⬇️ Down</button>
+            <button class="btn btn-secondary btn-sm" @onclick="MoveUp" disabled="@(Disabled || !CanMoveUp)" aria-label="@($"Move {Name} up")"><span aria-hidden="true">⬆️</span><span class="btn-label">Up</span></button>
+            <button class="btn btn-secondary btn-sm" @onclick="MoveDown" disabled="@(Disabled || !CanMoveDown)" aria-label="@($"Move {Name} down")"><span aria-hidden="true">⬇️</span><span class="btn-label">Down</span></button>
             <KebabMenu TriggerAriaLabel="@($"More actions for {Name}")" Items="@GetMenuItems()" Disabled="@Disabled" />
         </div>
     }

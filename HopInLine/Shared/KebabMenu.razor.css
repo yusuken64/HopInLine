@@ -37,6 +37,18 @@
     box-shadow: var(--shadow-lg);
 }
 
+/* Bottom-of-screen menus open upward */
+.kebab-up .kebab-popover {
+    top: auto;
+    bottom: 100%;
+    margin: 0 0 var(--space-3);
+}
+
+.kebab-start .kebab-popover {
+    right: auto;
+    left: 0;
+}
+
 .kebab-item {
     display: flex;
     align-items: center;

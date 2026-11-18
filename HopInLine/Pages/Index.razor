@@ -2,21 +2,26 @@
 @using HopInLine.Data.Line;
 
 <div class="page">
-    <h1 class="page-title">Hop In Line</h1>
-
-    <p class="page-subtitle">Take turns without the chaos. No sign-up. Nothing to install.</p>
+    <div class="home-intro">
+        <h1 class="page-title">Hop In Line</h1>
+        <p class="page-subtitle">Take turns without the chaos. No sign-up. Nothing to install.</p>
+    </div>
 
     <div class="home-doors">
         <section class="page-card home-door home-door-start" aria-labelledby="start-heading">
-            <div class="home-door-icon" aria-hidden="true">✨</div>
-            <h2 id="start-heading">Start a new line</h2>
+            <div class="home-door-head">
+                <div class="home-door-icon" aria-hidden="true">✨</div>
+                <h2 id="start-heading">Start a new line</h2>
+            </div>
             <p class="home-door-text">You're in charge. You'll get a link to share.</p>
             <button @onclick="NavigateToStartLine" class="btn btn-warning btn-lg btn-wide">Start a line</button>
         </section>
 
         <section class="page-card home-door home-door-join" aria-labelledby="join-heading">
-            <div class="home-door-icon" aria-hidden="true">🎟️</div>
-            <h2 id="join-heading">Join a line</h2>
+            <div class="home-door-head">
+                <div class="home-door-icon" aria-hidden="true">🎟️</div>
+                <h2 id="join-heading">Join a line</h2>
+            </div>
             <form class="home-join-form" @onsubmit="NavigateToJoinLine" @onsubmit:preventDefault>
                 <label for="lineId" class="form-label">Type the code you were given</label>
                 <input @bind="lineID" id="lineId" class="form-control code-input" placeholder="Line code"

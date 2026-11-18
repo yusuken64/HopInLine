@@ -21,9 +21,10 @@
 
 /* The root size grows with the screen: 16px on a phone, about 20px on a laptop,
    about 24px on a 1080p TV and about 38px on a 4K screen at 100% zoom.
-   Everything else is in rem, so the whole page scales with it. */
+   Everything else is in rem, so the whole page scales with it.
+   It is also capped by the screen's height, so short, wide screens (laptops, 16:9 TVs) still fit a page without scrolling. */
 html {
-    font-size: clamp(16px, 0.7vw + 11px, 44px);
+    font-size: clamp(16px, min(0.7vw + 11px, 1.2vh + 8px), 44px);
 }
 
 html, body {
@@ -32,6 +33,12 @@ html, body {
 
 h1:focus {
     outline: none;
+}
+
+/* FocusOnNavigate gives the h1 tabindex="-1", which matched the global focus ring in tokens.css
+   and drew a box around every page title */
+h1[tabindex="-1"]:focus-visible {
+    box-shadow: none;
 }
 
 body {
@@ -378,10 +385,18 @@ textarea.form-control {
 /* ---------- Page layout ---------- */
 
 .content {
-    padding: var(--space-6) var(--space-4) var(--space-7);
+    padding: var(--space-5) var(--space-4) var(--space-4);
+}
+
+/* On phones, pages that put their own title in the top bar get the room; the bunny alone links home */
+@media (max-width: 640px) {
+    .top-row:has(.topbar-line, .topbar-wizard) .brand-name {
+        display: none;
+    }
 }
 
 .page {
+    width: 100%;
     max-width: 64rem;
     margin: 0 auto;
 }
@@ -628,5 +643,11 @@ textarea.form-control {
     .btn:active {
         transition: none;
         transform: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .content {
+        padding: var(--space-4) var(--space-4) var(--space-3);
     }
 }

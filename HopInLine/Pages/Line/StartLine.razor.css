@@ -1,12 +1,29 @@
 .wizard {
+    width: 100%;
     max-width: 64rem;
     margin: 0 auto;
 }
 
-.wizard-title {
-    font-size: var(--font-size-3xl);
-    text-align: center;
-    text-shadow: 0.12rem 0.15rem 0 var(--paper);
+/* Title and Exit sit in the red top bar */
+.topbar-wizard {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-width: 0;
+    padding-left: var(--space-5);
+    border-left: 0.2rem solid rgba(255, 255, 255, 0.45);
+}
+
+.topbar-wizard-title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    color: var(--paper);
+    text-shadow: 0.1rem 0.15rem 0 var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Step indicator: big numbered dots joined by a thick line */
@@ -16,7 +33,7 @@
     gap: var(--space-4);
     list-style: none;
     padding: 0;
-    margin: var(--space-5) auto var(--space-6);
+    margin: 0 auto var(--space-5);
     max-width: 36rem;
 }
 
@@ -35,9 +52,9 @@
 .wizard-steps li:not(:first-child)::before {
     content: "";
     position: absolute;
-    top: 1.65rem;
-    right: calc(50% + 2.25rem);
-    width: calc(100% - 4.5rem + var(--space-4));
+    top: 1.2rem;
+    right: calc(50% + 1.75rem);
+    width: calc(100% - 3.5rem + var(--space-4));
     border-top: 0.3rem solid var(--ink);
     opacity: 0.35;
 }
@@ -50,8 +67,8 @@
 .wizard-step-number {
     display: grid;
     place-items: center;
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
     font-size: var(--font-size-lg);
     color: var(--ink);
     background-color: var(--paper);
@@ -89,29 +106,19 @@
 
 .wizard-card h2 {
     text-align: center;
-    margin: var(--space-6) 0 var(--space-4);
-}
-
-.wizard-top {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-4);
+    margin: var(--space-5) 0 var(--space-3);
 }
 
 .wizard-tip {
-    flex: 1;
     margin: 0;
-    padding: var(--space-3) var(--space-4);
-    font-size: var(--font-size-base);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     background-color: var(--yellow-50);
     border: 0.15rem dashed var(--ink);
     border-radius: var(--radius-md);
 }
 
-.wizard-exit {
-    flex-shrink: 0;
-}
 
 .wizard-hint {
     text-align: center;
@@ -135,7 +142,7 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-6) var(--space-4) var(--space-5);
+    padding: var(--space-5) var(--space-4) var(--space-4);
     font-family: inherit;
     font-size: var(--font-size-base);
     color: var(--ink);
@@ -191,7 +198,7 @@
 }
 
 .wizard-option-icon {
-    font-size: 3.5rem;
+    font-size: 2.75rem;
     line-height: 1;
 }
 
@@ -235,7 +242,7 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: var(--space-4);
-    margin-top: var(--space-6);
+    margin-top: var(--space-5);
 }
 
 .wizard-next {
@@ -247,20 +254,170 @@
         padding: var(--space-5) var(--space-4);
     }
 
-    .wizard-top {
-        flex-direction: column-reverse;
-        align-items: stretch;
+    .wizard-card h2 {
+        margin: var(--space-4) 0 var(--space-3);
+        font-size: var(--font-size-lg);
     }
 
-    .wizard-exit {
-        align-self: flex-end;
+    .wizard-steps {
+        margin-bottom: var(--space-4);
+    }
+
+    .wizard-step-label {
+        font-size: var(--font-size-sm);
+    }
+
+    /* Choice tiles turn into short rows: icon on the left, words on the right */
+    .wizard-options {
+        gap: var(--space-3);
+        margin-bottom: var(--space-3);
+    }
+
+    .wizard-option {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+        column-gap: var(--space-3);
+        row-gap: 0;
+        align-items: center;
+        padding: var(--space-3) var(--space-4);
+        text-align: left;
+    }
+
+    .wizard-option-icon {
+        grid-row: span 2;
+        font-size: 2rem;
+    }
+
+    .wizard-option-check {
+        top: var(--space-2);
+        left: auto;
+        right: var(--space-2);
+        transform: none;
+    }
+
+    .wizard-timer {
+        padding: var(--space-4);
+    }
+
+    /* Back and Next side by side */
+    .wizard-actions {
+        flex-wrap: nowrap;
+        gap: var(--space-3);
+        margin-top: var(--space-4);
     }
 
     .wizard-actions .btn {
-        flex: 1 1 100%;
+        flex: 1 1 0;
+        min-width: 0;
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
     }
 
-    .wizard-actions {
-        flex-direction: column-reverse;
+    .topbar-wizard {
+        padding-left: var(--space-3);
     }
+
+    .topbar-wizard-title {
+        font-size: var(--font-size-lg);
+    }
+}
+
+/* ---------- Every size: choice tiles as short rows (icon left, words right), so each step fits one screen ---------- */
+
+.wizard-card {
+    padding: var(--space-5) var(--space-6);
+}
+
+.wizard-options {
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
+}
+
+.wizard-option {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-4);
+    row-gap: 0;
+    align-items: center;
+    padding: var(--space-4) var(--space-5);
+    text-align: left;
+}
+
+.wizard-option-icon {
+    grid-row: span 2;
+    font-size: 2.25rem;
+}
+
+.wizard-option-check {
+    top: var(--space-2);
+    left: auto;
+    right: var(--space-2);
+    transform: none;
+}
+
+@media (max-width: 540px) {
+    .wizard-card {
+        padding: var(--space-4);
+    }
+}
+
+.wizard-option > span:last-child {
+    font-size: var(--font-size-sm);
+}
+
+/* "Picked" sits on the tile's top edge like a sticker, out of the text's way */
+.wizard-option-check {
+    top: -0.7rem;
+    right: var(--space-4);
+    padding: 0 0.6em;
+}
+
+/* Phones: timer numbers sit to the right of their labels, hints underneath in small print */
+@media (max-width: 540px) {
+    .wizard-timer-grid .form-group {
+        display: grid;
+        grid-template-columns: 1fr 6rem;
+        align-items: center;
+        column-gap: var(--space-3);
+    }
+
+    .wizard-timer-grid .form-group > label {
+        margin: 0;
+    }
+
+    .wizard-timer-grid .form-hint {
+        grid-column: 1 / -1;
+        font-size: var(--font-size-xs, 0.8rem);
+    }
+
+    .wizard-tip {
+        padding: var(--space-2) var(--space-3);
+    }
+}
+
+/* Tighter vertical rhythm so the last step fits a 720p laptop */
+.wizard-card h2 {
+    margin: var(--space-4) 0 var(--space-3);
+}
+
+.wizard-card .form-group {
+    margin-bottom: var(--space-4);
+}
+
+.wizard-steps {
+    margin-bottom: var(--space-4);
+}
+
+.wizard-actions {
+    margin-top: var(--space-4);
+}
+
+.wizard-steps {
+    margin-bottom: var(--space-3);
+}
+
+.wizard-card h2:first-of-type {
+    margin-top: var(--space-3);
 }

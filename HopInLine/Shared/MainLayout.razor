@@ -6,8 +6,11 @@
 
 <PageTitle>HopInLine</PageTitle>
 
+<div class="app-shell">
 <header class="top-row">
     <NavMenu />
+    @* Pages put their own title and actions here (the line page: name, head count, Invite, Settings) *@
+    <SectionOutlet SectionName="top-bar" />
 </header>
 
 <main>
@@ -15,6 +18,7 @@
         @Body
     </article>
 </main>
+</div>
 </CascadingValue>
 
 @code {
