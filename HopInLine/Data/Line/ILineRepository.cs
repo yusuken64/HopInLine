@@ -16,6 +16,8 @@
 		/// <summary>Moves an active participant to a zero-based index among active participants (clamped to the line's bounds).</summary>
 		Task MoveParticipantToAsync(string lineID, string participantID, int index);
 		Task RenameParticipantAsync(string lineID, string participantID, string name);
+		/// <summary>Sets a participant's note (stored as Description). Null clears it.</summary>
+		Task SetParticipantNoteAsync(string lineID, string participantID, string? note);
 		Task RemovedParticipantAsync(string lineID, string participantID);
 		Task ResumeTimerAsync(string lineId);
 		Task PauseTimerAsync(string lineId);

@@ -582,3 +582,9 @@
         transition: none;
     }
 }
+
+/* Notes are sentences, so read left-aligned rather than centred like the one-line dialog inputs */
+.note-input {
+    text-align: left;
+    resize: vertical;
+}

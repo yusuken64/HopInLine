@@ -397,6 +397,65 @@ namespace HopInLine.Data.Line
         }
 
         /// <summary>
+        /// Sets any participant's note. Requires valid manageToken.
+        /// </summary>
+        public async Task SetParticipantNoteAsync(string lineId, string manageToken, string participantId, string? note)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+            note = NormalizeNote(note);
+
+            await _lineRepository.SetParticipantNoteAsync(line.Id, participantId, note);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Sets the caller's own note, authorized by their leave token.
+        /// </summary>
+        public async Task SetOwnNoteAsync(string lineId, string participantId, string leaveToken, string? note)
+        {
+            Throttle(RateLimitedAction.Write);
+            lineId = IdGenerator.NormalizeId(lineId);
+            note = NormalizeNote(note);
+
+            var line = await _lineRepository.GetLineAsync(lineId);
+            if (line == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            var participant = line.Participants.FirstOrDefault(p => p.Id == participantId);
+            if (participant == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            if (!FixedTimeCompare(participant.LeaveToken, leaveToken))
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            await _lineRepository.SetParticipantNoteAsync(line.Id, participantId, note);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        // Trims a note; blank clears it. Max length matches the Description column.
+        private static string? NormalizeNote(string? note)
+        {
+            note = note?.Trim();
+            if (string.IsNullOrEmpty(note))
+            {
+                return null;
+            }
+
+            if (note.Length > 200)
+            {
+                throw new ArgumentException("Note must not exceed 200 characters.");
+            }
+
+            return note;
+        }
+
+        /// <summary>
         /// Removes a participant from the line. Requires valid manageToken.
         /// </summary>
         public async Task RemoveParticipantAsync(string lineId, string manageToken, string participantId)

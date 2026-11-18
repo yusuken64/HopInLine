@@ -58,6 +58,7 @@
     [Parameter] public EventCallback OnMoveToNext { get; set; }
     [Parameter] public EventCallback OnMoveToBack { get; set; }
     [Parameter] public EventCallback OnRename { get; set; }
+    [Parameter] public EventCallback OnEditNote { get; set; }
     [Parameter] public EventCallback OnRemove { get; set; }
 
     private async Task MoveUp() => await OnMoveUp.InvokeAsync(null);
@@ -85,6 +86,16 @@
         if (OnRename.HasDelegate)
         {
             items.Add(new KebabMenuItem { Label = "✏️ Rename", AriaLabel = $"Rename {Name}", OnClick = OnRename });
+        }
+        if (OnEditNote.HasDelegate)
+        {
+            var hasNote = !string.IsNullOrWhiteSpace(Description);
+            items.Add(new KebabMenuItem
+            {
+                Label = hasNote ? "📝 Edit note" : "📝 Add note",
+                AriaLabel = hasNote ? $"Edit note for {Name}" : $"Add a note for {Name}",
+                OnClick = OnEditNote
+            });
         }
         items.Add(new KebabMenuItem { Label = "✖️ Remove from line", AriaLabel = $"Remove {Name} from the line", OnClick = OnRemove, IsDangerous = true });
 

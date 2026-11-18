@@ -221,6 +221,7 @@ else
 								OnMoveToNext="@(async () => await MoveParticipantTo(participant, 1))"
 								OnMoveToBack="@(async () => await MoveParticipantTo(participant, int.MaxValue))"
 								OnRename="@(() => OpenRenamePrompt(participant))"
+								OnEditNote="@(() => OpenNotePrompt(participant, isSelf: false))"
 								OnRemove="@(async () => await RemoveParticipant(participant))" />
 						}
 					</ol>
@@ -295,6 +296,7 @@ else
 								<span class="toolbar-ahead">@AheadText(position - 1)</span>
 							}
 						</div>
+						<button @onclick="OpenOwnNotePrompt" class="btn btn-secondary" disabled="@busy">📝 My note</button>
 						<button @onclick="LeaveLine" class="btn btn-secondary" disabled="@busy">👋 Leave line</button>
 					}
 					else
@@ -325,6 +327,28 @@ else
 				<input @bind="renameInput" class="form-control dialog-input" maxlength="60" required autofocus aria-label="New name" />
 				<div class="dialog-actions">
 					<button type="button" @onclick="CloseRenamePrompt" class="btn btn-secondary btn-lg">✕ Cancel</button>
+					<button type="submit" class="btn btn-success btn-lg" disabled="@busy">✓ Save</button>
+				</div>
+			</form>
+		</div>
+	}
+
+	@if (noteTarget is not null)
+	{
+		<div class="dialog-backdrop">
+			<form class="dialog" role="dialog" aria-modal="true" aria-labelledby="note-title"
+				  @onsubmit="SaveNote" @onsubmit:preventDefault>
+				<div class="dialog-icon" aria-hidden="true">📝</div>
+				<h2 class="dialog-title" id="note-title">@(noteIsSelf ? "Your note" : $"Note for {noteTarget.Name}")</h2>
+				<p class="dialog-text">Everyone in the line will see it. Leave it blank to remove it.</p>
+				@if (!string.IsNullOrEmpty(noteError))
+				{
+					<div class="alert alert-danger" role="alert">@noteError</div>
+				}
+				<textarea @bind="noteInput" class="form-control dialog-input note-input" maxlength="200" rows="3" autofocus
+						  placeholder="@(noteIsSelf ? "e.g. Question about homework 3" : "e.g. Needs help with setup")" aria-label="Note"></textarea>
+				<div class="dialog-actions">
+					<button type="button" @onclick="CloseNotePrompt" class="btn btn-secondary btn-lg">✕ Cancel</button>
 					<button type="submit" class="btn btn-success btn-lg" disabled="@busy">✓ Save</button>
 				</div>
 			</form>
@@ -884,6 +908,97 @@ else
 		{
 			renameError = errorMessage;
 			errorMessage = null;
+		}
+	}
+
+	private ParticipantDto? noteTarget;
+	private bool noteIsSelf;
+	private string? noteInput;
+	private string? noteError;
+
+	private void OpenNotePrompt(ParticipantDto participant, bool isSelf)
+	{
+		noteTarget = participant;
+		noteIsSelf = isSelf;
+		noteInput = participant.Description;
+		noteError = null;
+	}
+
+	private void OpenOwnNotePrompt()
+	{
+		var me = line?.Participants.FirstOrDefault(p => p.Id == myParticipantId);
+		if (me is not null)
+		{
+			OpenNotePrompt(me, isSelf: true);
+		}
+	}
+
+	private void CloseNotePrompt()
+	{
+		noteTarget = null;
+		noteError = null;
+	}
+
+	private async Task SaveNote()
+	{
+		if (noteTarget is not { } target)
+		{
+			return;
+		}
+
+		var note = noteInput?.Trim() ?? "";
+		if (note == (target.Description ?? ""))
+		{
+			CloseNotePrompt();
+			return;
+		}
+
+		busy = true;
+		noteError = null;
+		try
+		{
+			if (noteIsSelf)
+			{
+				if (string.IsNullOrEmpty(myParticipantId) || string.IsNullOrEmpty(myLeaveToken))
+				{
+					noteError = "You're not in this line anymore.";
+					return;
+				}
+				await LineService.SetOwnNoteAsync(LineId, myParticipantId, myLeaveToken, note);
+			}
+			else if (canManage)
+			{
+				await LineService.SetParticipantNoteAsync(LineId, ManageToken ?? string.Empty, target.Id, note);
+			}
+			CloseNotePrompt();
+		}
+		catch (ArgumentException ex)
+		{
+			noteError = ex.Message;
+		}
+		catch (KeyNotFoundException)
+		{
+			noteError = noteIsSelf ? "You're not in this line anymore." : "That person isn't in this line anymore.";
+		}
+		catch (UnauthorizedAccessException)
+		{
+			noteError = "You don't have permission to change this note.";
+		}
+		catch (RateLimitExceededException ex)
+		{
+			noteError = ex.Message;
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			noteError = "Someone else just updated this line — please try again.";
+		}
+		catch (Exception ex)
+		{
+			noteError = $"An unexpected error occurred: {ex.Message}";
+		}
+		finally
+		{
+			busy = false;
 		}
 	}
 

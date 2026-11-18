@@ -224,6 +224,20 @@ namespace HopInLine.Data.Line
             });
         }
 
+        public async Task SetParticipantNoteAsync(string lineID, string participantID, string? note)
+        {
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var participant = await context.Participants
+                    .FirstOrDefaultAsync(p => p.Id == participantID && p.LineId == lineID);
+
+                if (participant == null)
+                    return;
+
+                participant.Description = note;
+            });
+        }
+
         public async Task RemovedParticipantAsync(string lineID, string participantID)
         {
             await ExecuteWithRetryAsync(async context =>

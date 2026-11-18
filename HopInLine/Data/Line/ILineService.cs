@@ -109,6 +109,24 @@ namespace HopInLine.Data.Line
 		Task RenameParticipantAsync(string lineId, string manageToken, string participantId, string name);
 
 		/// <summary>
+		/// Sets any participant's note (up to 200 characters; blank clears it). Requires valid manageToken.
+		/// </summary>
+		/// <param name="lineId">The ID of the line.</param>
+		/// <param name="manageToken">The line's management token.</param>
+		/// <param name="participantId">The ID of the participant.</param>
+		/// <param name="note">The new note, or blank to clear it.</param>
+		Task SetParticipantNoteAsync(string lineId, string manageToken, string participantId, string? note);
+
+		/// <summary>
+		/// Sets the caller's own note (up to 200 characters; blank clears it). Authorized by the participant's leave token.
+		/// </summary>
+		/// <param name="lineId">The ID of the line.</param>
+		/// <param name="participantId">The caller's participant ID.</param>
+		/// <param name="leaveToken">The participant's leave token for authorization.</param>
+		/// <param name="note">The new note, or blank to clear it.</param>
+		Task SetOwnNoteAsync(string lineId, string participantId, string leaveToken, string? note);
+
+		/// <summary>
 		/// Removes a participant from the line. Requires valid manageToken.
 		/// </summary>
 		/// <param name="lineId">The ID of the line.</param>
