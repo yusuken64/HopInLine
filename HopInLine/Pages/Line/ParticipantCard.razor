@@ -72,8 +72,8 @@
         {
             items.Add(new KebabMenuItem { Label = "⭐ Make up now", AriaLabel = $"Make {Name} up now", OnClick = OnMoveToFront });
         }
-        // Already up next at place 2
-        if (OnMoveToNext.HasDelegate && Place != 2)
+        // Already up next at place 2; at place 1 it means "let the next person go first", which needs someone behind
+        if (OnMoveToNext.HasDelegate && Place != 2 && (Place != 1 || CanMoveDown))
         {
             items.Add(new KebabMenuItem { Label = "⏭️ Make up next", AriaLabel = $"Make {Name} up next", OnClick = OnMoveToNext });
         }

@@ -13,6 +13,9 @@
 		Task ReAddRemovedParticipantAsync(string lineID, string particiantID);
 		Task MoveParticipantUpAsync(string lineID, string participantID);
 		Task MoveParticipantDownAsync(string lineID, string participantID);
+		/// <summary>Moves an active participant to a zero-based index among active participants (clamped to the line's bounds).</summary>
+		Task MoveParticipantToAsync(string lineID, string participantID, int index);
+		Task RenameParticipantAsync(string lineID, string participantID, string name);
 		Task RemovedParticipantAsync(string lineID, string participantID);
 		Task ResumeTimerAsync(string lineId);
 		Task PauseTimerAsync(string lineId);

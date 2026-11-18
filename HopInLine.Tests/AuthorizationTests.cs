@@ -82,6 +82,8 @@ public class AuthorizationTests : IDisposable
     [InlineData(nameof(TestOperation.AdvanceLineAsync))]
     [InlineData(nameof(TestOperation.MoveParticipantUpAsync))]
     [InlineData(nameof(TestOperation.MoveParticipantDownAsync))]
+    [InlineData(nameof(TestOperation.MoveParticipantToAsync))]
+    [InlineData(nameof(TestOperation.RenameParticipantAsync))]
     [InlineData(nameof(TestOperation.RemoveParticipantAsync))]
     [InlineData(nameof(TestOperation.ReAddRemovedParticipantAsync))]
     [InlineData(nameof(TestOperation.DeleteRemovedParticipantAsync))]
@@ -336,6 +338,8 @@ internal static class TestOperation
             nameof(AdvanceLineAsync) => AdvanceLineAsync,
             nameof(MoveParticipantUpAsync) => MoveParticipantUpAsync,
             nameof(MoveParticipantDownAsync) => MoveParticipantDownAsync,
+            nameof(MoveParticipantToAsync) => MoveParticipantToAsync,
+            nameof(RenameParticipantAsync) => RenameParticipantAsync,
             nameof(RemoveParticipantAsync) => RemoveParticipantAsync,
             nameof(ReAddRemovedParticipantAsync) => ReAddRemovedParticipantAsync,
             nameof(DeleteRemovedParticipantAsync) => DeleteRemovedParticipantAsync,
@@ -359,6 +363,12 @@ internal static class TestOperation
 
     public static Task MoveParticipantDownAsync(ILineService service, string lineId, string token, string participantId)
         => service.MoveParticipantDownAsync(lineId, token, participantId);
+
+    public static Task MoveParticipantToAsync(ILineService service, string lineId, string token, string participantId)
+        => service.MoveParticipantToAsync(lineId, token, participantId, 0);
+
+    public static Task RenameParticipantAsync(ILineService service, string lineId, string token, string participantId)
+        => service.RenameParticipantAsync(lineId, token, participantId, "Renamed");
 
     public static Task RemoveParticipantAsync(ILineService service, string lineId, string token, string participantId)
         => service.RemoveParticipantAsync(lineId, token, participantId);

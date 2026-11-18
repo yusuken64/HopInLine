@@ -363,6 +363,40 @@ namespace HopInLine.Data.Line
         }
 
         /// <summary>
+        /// Moves a participant to a zero-based index among active participants (0 = up now).
+        /// Out-of-range indexes are clamped. Requires valid manageToken.
+        /// </summary>
+        public async Task MoveParticipantToAsync(string lineId, string manageToken, string participantId, int index)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            await _lineRepository.MoveParticipantToAsync(line.Id, participantId, index);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
+        /// Renames a participant. Requires valid manageToken.
+        /// </summary>
+        public async Task RenameParticipantAsync(string lineId, string manageToken, string participantId, string name)
+        {
+            var line = await AuthorizeAsync(lineId, manageToken);
+
+            name = name?.Trim() ?? "";
+            if (name.Length == 0)
+            {
+                throw new ArgumentException("Participant name cannot be empty.");
+            }
+
+            if (name.Length > 60)
+            {
+                throw new ArgumentException("Participant name must not exceed 60 characters.");
+            }
+
+            await _lineRepository.RenameParticipantAsync(line.Id, participantId, name);
+            await _notifier.NotifyAsync(line.Id);
+        }
+
+        /// <summary>
         /// Removes a participant from the line. Requires valid manageToken.
         /// </summary>
         public async Task RemoveParticipantAsync(string lineId, string manageToken, string participantId)

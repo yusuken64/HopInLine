@@ -90,6 +90,25 @@ namespace HopInLine.Data.Line
 		Task MoveParticipantDownAsync(string lineId, string manageToken, string participantId);
 
 		/// <summary>
+		/// Moves a participant to a zero-based index among active participants (0 = up now).
+		/// Out-of-range indexes are clamped. Requires valid manageToken.
+		/// </summary>
+		/// <param name="lineId">The ID of the line.</param>
+		/// <param name="manageToken">The line's management token.</param>
+		/// <param name="participantId">The ID of the participant to move.</param>
+		/// <param name="index">The target index.</param>
+		Task MoveParticipantToAsync(string lineId, string manageToken, string participantId, int index);
+
+		/// <summary>
+		/// Renames a participant (1–60 characters after trimming). Requires valid manageToken.
+		/// </summary>
+		/// <param name="lineId">The ID of the line.</param>
+		/// <param name="manageToken">The line's management token.</param>
+		/// <param name="participantId">The ID of the participant to rename.</param>
+		/// <param name="name">The new name.</param>
+		Task RenameParticipantAsync(string lineId, string manageToken, string participantId, string name);
+
+		/// <summary>
 		/// Removes a participant from the line. Requires valid manageToken.
 		/// </summary>
 		/// <param name="lineId">The ID of the line.</param>

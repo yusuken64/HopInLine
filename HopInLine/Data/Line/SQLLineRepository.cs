@@ -177,6 +177,53 @@ namespace HopInLine.Data.Line
             });
         }
 
+        public async Task MoveParticipantToAsync(string lineID, string participantID, int index)
+        {
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var line = await context.Lines
+                    .Include(l => l.Participants)
+                    .FirstOrDefaultAsync(l => l.Id == lineID);
+
+                if (line == null)
+                    return;
+
+                var active = line.Participants
+                    .Where(p => !p.Removed)
+                    .OrderBy(p => p.Position)
+                    .ToList();
+
+                var participant = active.FirstOrDefault(p => p.Id == participantID);
+                if (participant == null)
+                    return;
+
+                // Reuse the existing set of positions in the new order, so NextPosition and
+                // removed participants are untouched
+                var positions = active.Select(p => p.Position).ToList();
+                active.Remove(participant);
+                active.Insert(Math.Clamp(index, 0, active.Count), participant);
+
+                for (int i = 0; i < active.Count; i++)
+                {
+                    active[i].Position = positions[i];
+                }
+            });
+        }
+
+        public async Task RenameParticipantAsync(string lineID, string participantID, string name)
+        {
+            await ExecuteWithRetryAsync(async context =>
+            {
+                var participant = await context.Participants
+                    .FirstOrDefaultAsync(p => p.Id == participantID && p.LineId == lineID);
+
+                if (participant == null)
+                    return;
+
+                participant.Name = name;
+            });
+        }
+
         public async Task RemovedParticipantAsync(string lineID, string participantID)
         {
             await ExecuteWithRetryAsync(async context =>

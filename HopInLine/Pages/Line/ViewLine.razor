@@ -217,6 +217,10 @@ else
 								Disabled="@busy"
 								OnMoveUp="@(async () => await MoveParticipantUp(participant))"
 								OnMoveDown="@(async () => await MoveParticipantDown(participant))"
+								OnMoveToFront="@(async () => await MoveParticipantTo(participant, 0))"
+								OnMoveToNext="@(async () => await MoveParticipantTo(participant, 1))"
+								OnMoveToBack="@(async () => await MoveParticipantTo(participant, int.MaxValue))"
+								OnRename="@(() => OpenRenamePrompt(participant))"
 								OnRemove="@(async () => await RemoveParticipant(participant))" />
 						}
 					</ol>
@@ -305,6 +309,27 @@ else
 			</div>
 		</div>
 	</div>
+
+	@if (renameTarget is not null)
+	{
+		<div class="dialog-backdrop">
+			<form class="dialog" role="dialog" aria-modal="true" aria-labelledby="rename-title"
+				  @onsubmit="SaveRename" @onsubmit:preventDefault>
+				<div class="dialog-icon" aria-hidden="true">✏️</div>
+				<h2 class="dialog-title" id="rename-title">Rename @renameTarget.Name</h2>
+				<p class="dialog-text">Everyone in the line will see the new name.</p>
+				@if (!string.IsNullOrEmpty(renameError))
+				{
+					<div class="alert alert-danger" role="alert">@renameError</div>
+				}
+				<input @bind="renameInput" class="form-control dialog-input" maxlength="60" required autofocus aria-label="New name" />
+				<div class="dialog-actions">
+					<button type="button" @onclick="CloseRenamePrompt" class="btn btn-secondary btn-lg">✕ Cancel</button>
+					<button type="submit" class="btn btn-success btn-lg" disabled="@busy">✓ Save</button>
+				</div>
+			</form>
+		</div>
+	}
 
 	@if (showNamePrompt)
 	{
@@ -785,6 +810,99 @@ else
 		try
 		{
 			await LineService.MoveParticipantDownAsync(LineId, ManageToken ?? string.Empty, participant.Id);
+		}
+		catch (ArgumentException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			errorMessage = "You no longer have permission to manage this line.";
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			errorMessage = "Someone else just updated this line — please try again.";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
+		}
+		finally
+		{
+			busy = false;
+		}
+	}
+
+	private ParticipantDto? renameTarget;
+	private string? renameInput;
+	private string? renameError;
+
+	private void OpenRenamePrompt(ParticipantDto participant)
+	{
+		renameTarget = participant;
+		renameInput = participant.Name;
+		renameError = null;
+	}
+
+	private void CloseRenamePrompt()
+	{
+		renameTarget = null;
+		renameError = null;
+	}
+
+	private async Task SaveRename()
+	{
+		if (renameTarget is not { } target)
+		{
+			return;
+		}
+
+		var name = renameInput?.Trim() ?? "";
+		if (name.Length == 0)
+		{
+			renameError = "Please type a name.";
+			return;
+		}
+		if (name == target.Name)
+		{
+			CloseRenamePrompt();
+			return;
+		}
+
+		await RunManagerActionAsync(() => LineService.RenameParticipantAsync(LineId, ManageToken ?? string.Empty, target.Id, name));
+
+		// Keep the dialog open on failure so the manager can fix it and retry
+		if (string.IsNullOrEmpty(errorMessage))
+		{
+			CloseRenamePrompt();
+		}
+		else
+		{
+			renameError = errorMessage;
+			errorMessage = null;
+		}
+	}
+
+	private Task MoveParticipantTo(ParticipantDto participant, int index) =>
+		RunManagerActionAsync(() => LineService.MoveParticipantToAsync(LineId, ManageToken ?? string.Empty, participant.Id, index));
+
+	// Shared busy/error handling for manager actions, matching the per-action handlers above
+	private async Task RunManagerActionAsync(Func<Task> action)
+	{
+		if (line is null || !canManage)
+		{
+			return;
+		}
+
+		busy = true;
+		errorMessage = null;
+		try
+		{
+			await action();
 		}
 		catch (ArgumentException ex)
 		{
