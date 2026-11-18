@@ -8,261 +8,319 @@
 {
 	if (string.IsNullOrEmpty(errorMessage))
 	{
-		<p>Loading...</p>
+		<div class="big-message">
+			<div class="big-message-icon" aria-hidden="true">⏳</div>
+			<p><strong>Loading…</strong></p>
+		</div>
 	}
 	else
 	{
-		<p>@errorMessage</p>
-		<a href="/">Go to home page</a>
+		<div class="page">
+			<div class="page-card big-message" role="alert">
+				<div class="big-message-icon" aria-hidden="true">🤔</div>
+				<h1>@errorMessage</h1>
+				<p>Check the code, or start a new line from the home page.</p>
+				<div class="page-actions">
+					<a href="/" class="btn btn-warning btn-lg">🏠 Go to the home page</a>
+				</div>
+			</div>
+		</div>
 	}
 }
 else
 {
-	<aside class="side-panel @(panelOpen ? "open" : "")" aria-label="Line panel">
-		<button class="side-panel-toggle" @onclick="TogglePanel"
-				aria-expanded="@(panelOpen ? "true" : "false")"
-				aria-label="@(panelOpen ? "Close panel" : (canManage ? "Open invite and settings panel" : "Open invite panel"))">
-			<span class="oi @(panelOpen ? "oi-chevron-left" : "oi-chevron-right")" aria-hidden="true"></span>
-		</button>
+	var queue = line.Participants.OrderBy(p => p.Position).ToList();
+	var firstActive = queue.FirstOrDefault(p => !p.Removed);
+	// The big board (clock or "Now up" sign). On wide screens it sits beside the list.
+	var hasStage = (line.AutoAdvanceLine && queue.Count > 0) || (!line.AutoAdvanceLine && firstActive is not null);
 
-		<div class="side-panel-body">
-			@if (panelTab == PanelTab.Invite)
-			{
-				<h2 class="side-panel-heading">Invite people</h2>
-				<p class="text-muted">Anyone with this link can see the line and hop in.</p>
-				<input class="form-control" readonly value="@ShareLink" aria-label="Join link" />
-				<div class="side-panel-row">
-					<button @onclick="CopyShareLink" class="btn btn-primary">@(shareLinkCopied ? "Copied!" : "Copy link")</button>
-					<span class="text-muted">or code <strong>@line.Id</strong></span>
-				</div>
+	@if (panelOpen)
+	{
+		<div class="side-panel-backdrop" @onclick="ClosePanel" aria-hidden="true"></div>
+	}
 
-				@if (canManage)
-				{
-					<h2 class="side-panel-heading">Add someone</h2>
-					<p class="text-muted">For people who aren't on a device.</p>
-					<form class="side-panel-row" @onsubmit="AddOther" @onsubmit:preventDefault>
-						<input @bind="newParticipant" placeholder="Name" maxlength="60" class="form-control" disabled="@busy" aria-label="Name to add" />
-						<button type="submit" class="btn btn-outline-success" disabled="@busy">Add</button>
-					</form>
-
-					<h2 class="side-panel-heading">Manage link</h2>
-					<p class="text-muted">Bookmark this page — this URL is the only way back in as manager. Don't share it.</p>
-					<button @onclick="CopyManageLink" class="btn btn-secondary">@(manageLinkCopied ? "Copied!" : "Copy manage link")</button>
-				}
-			}
-			else if (panelTab == PanelTab.Settings && canManage)
-			{
-				@if (line.AutoAdvanceLine && line.AutoAdvanceInterval.TotalMinutes >= 1)
-				{
-					<h2 class="side-panel-heading">Timer</h2>
-					<p class="text-muted">Advances every @DurationFormat.Humanize(line.AutoAdvanceInterval).</p>
-					<div class="side-panel-row">
-						@if (line.IsPaused)
-						{
-							<button @onclick="ResumeTimer" class="btn btn-secondary timer-btn" disabled="@busy">
-								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
-								Resume timer
-							</button>
-						}
-						else
-						{
-							<button @onclick="PauseTimer" class="btn btn-secondary timer-btn" disabled="@busy">
-								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" /></svg>
-								Pause timer
-							</button>
-						}
-						<button @onclick="RestartTimer" class="btn btn-secondary timer-btn" disabled="@busy">
-							<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor" /></svg>
-							Restart timer
-						</button>
-						@if (line.IsPaused)
-						{
-							<button @onclick="ResetTimer" class="btn btn-secondary timer-btn" disabled="@busy">
-								<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zM9.5 12 18 18V6z" fill="currentColor" /></svg>
-								Reset timer
-							</button>
-						}
-					</div>
-				}
-
-				<h2 class="side-panel-heading">Line settings</h2>
-				<button @onclick="Edit" class="btn btn-secondary" disabled="@busy">Edit line</button>
-
-				<h2 class="side-panel-heading">Danger zone</h2>
-				<button @onclick="DeleteLineAsync" class="btn btn-outline-danger" disabled="@busy">Delete line</button>
-			}
+	<aside class="side-panel @(panelOpen ? "open" : "")" aria-label="@(panelTab == PanelTab.Invite ? "Invite people" : "Settings")">
+		<div class="side-panel-header">
+			<h2 class="side-panel-title">@(panelTab == PanelTab.Invite ? "📣 Invite people" : "⚙️ Settings")</h2>
+			<button class="btn btn-secondary btn-sm" @onclick="ClosePanel">✕ Close</button>
 		</div>
 
 		@if (canManage)
 		{
-			<nav class="side-panel-tabs" role="tablist">
+			<nav class="side-panel-tabs" role="tablist" aria-label="Panel sections">
 				<button role="tab" aria-selected="@(panelTab == PanelTab.Invite ? "true" : "false")"
 						class="side-panel-tab @(panelTab == PanelTab.Invite ? "active" : "")"
 						@onclick="() => panelTab = PanelTab.Invite">
-					<span class="oi oi-people" aria-hidden="true"></span> Invite
+					📣 Invite
 				</button>
 				<button role="tab" aria-selected="@(panelTab == PanelTab.Settings ? "true" : "false")"
 						class="side-panel-tab @(panelTab == PanelTab.Settings ? "active" : "")"
 						@onclick="() => panelTab = PanelTab.Settings">
-					<span class="oi oi-cog" aria-hidden="true"></span> Settings
+					⚙️ Settings
 				</button>
 			</nav>
 		}
+
+		<div class="side-panel-body">
+			@if (panelTab == PanelTab.Invite)
+			{
+				<section class="panel-section">
+					<h3 class="panel-heading">Tell people this code</h3>
+					<p class="join-code" aria-label="Line code">@line.Id</p>
+					<p class="panel-text">They type it on the HopInLine home page.</p>
+				</section>
+
+				<section class="panel-section">
+					<h3 class="panel-heading">Or send them the link</h3>
+					<input class="form-control panel-link" readonly value="@ShareLink" aria-label="Join link" />
+					<button @onclick="CopyShareLink" class="btn btn-primary btn-wide">@(shareLinkCopied ? "✅ Copied!" : "📋 Copy link")</button>
+				</section>
+
+				@if (canManage)
+				{
+					<section class="panel-section">
+						<h3 class="panel-heading">➕ Add someone</h3>
+						<p class="panel-text">For people who don't have a phone with them.</p>
+						<form class="panel-add" @onsubmit="AddOther" @onsubmit:preventDefault>
+							<input @bind="newParticipant" placeholder="Their name" maxlength="60" class="form-control" disabled="@busy" aria-label="Name to add" />
+							<button type="submit" class="btn btn-success" disabled="@busy">Add</button>
+						</form>
+					</section>
+
+					<section class="panel-section panel-warning">
+						<h3 class="panel-heading">🔑 Your manager link</h3>
+						<p class="panel-text">This link lets you run the line, and it's the only way back in. Bookmark it or save it somewhere safe. <strong>Don't share it.</strong></p>
+						<button @onclick="CopyManageLink" class="btn btn-secondary btn-wide">@(manageLinkCopied ? "✅ Copied!" : "📋 Copy manager link")</button>
+					</section>
+				}
+			}
+			else if (panelTab == PanelTab.Settings && canManage)
+			{
+				@if (HasTimer)
+				{
+					<section class="panel-section">
+						<h3 class="panel-heading">⏱️ Timer</h3>
+						<p class="panel-text">Each turn lasts @DurationFormat.Humanize(line.AutoAdvanceInterval).</p>
+						@TimerControls
+					</section>
+				}
+
+				<section class="panel-section">
+					<h3 class="panel-heading">✏️ Line settings</h3>
+					<p class="panel-text">Change the name, the timer, or rotation.</p>
+					<button @onclick="Edit" class="btn btn-secondary btn-wide" disabled="@busy">✏️ Change settings</button>
+				</section>
+
+				<section class="panel-section panel-danger">
+					<h3 class="panel-heading">Danger zone</h3>
+					<p class="panel-text">Deleting removes the line and everyone in it. You can't undo this.</p>
+					<button @onclick="DeleteLineAsync" class="btn btn-danger btn-wide" disabled="@busy">🗑️ Delete line</button>
+				</section>
+			}
+		</div>
 	</aside>
 
-	<div class="view-line-shell @(panelOpen ? "panel-open" : "")">
+	<div class="view-line-shell @(panelOpen ? "panel-open" : "") @(hasStage ? "has-stage" : "")">
 		<div class="page view-line-content">
-			<h1 class="page-title">@line.Name @if (line.Participants is { Count: > 0 }) {<span class="history-count" title="People in line">(@line.Participants.Count)</span>}</h1>
+			<header class="line-header">
+				<h1 class="page-title line-title">@line.Name</h1>
+				@if (!string.IsNullOrWhiteSpace(line.Description))
+				{
+					<p class="line-description">@line.Description</p>
+				}
+				<p class="line-count">👥 @PeopleText(queue.Count)</p>
+				<div class="line-header-actions">
+					<button class="btn btn-primary" @onclick="() => OpenPanel(PanelTab.Invite)"
+							aria-expanded="@(panelOpen && panelTab == PanelTab.Invite ? "true" : "false")">
+						📣 Invite people
+					</button>
+					@if (canManage)
+					{
+						<button class="btn btn-secondary" @onclick="() => OpenPanel(PanelTab.Settings)"
+								aria-expanded="@(panelOpen && panelTab == PanelTab.Settings ? "true" : "false")">
+							⚙️ Settings
+						</button>
+					}
+				</div>
+			</header>
 
 			@if (!string.IsNullOrEmpty(errorMessage))
 			{
 				<div class="alert alert-danger" role="alert">@errorMessage</div>
 			}
 
-			<div class="participants-list page-card">
-				@if (line.Participants == null || line.Participants.Count == 0)
+			<div class="line-body @(hasStage ? "has-stage" : "")">
+			<div class="line-stage">
+			@if (line.AutoAdvanceLine && queue.Count > 0)
+			{
+				<section class="scoreboard @(line.IsPaused ? "paused" : "")" aria-label="Turn timer">
+					@if (firstActive is not null)
+					{
+						<div class="scoreboard-label">Now up</div>
+						<div class="scoreboard-name">@firstActive.Name</div>
+					}
+					<div class="scoreboard-clock" id="countdown-@line.Id" role="timer">@GetTimeLeftDisplay()</div>
+					<div class="scoreboard-status">
+						<span class="scoreboard-light" aria-hidden="true"></span>
+						<span id="status-@line.Id">@GetStatusLabel()</span>
+					</div>
+				</section>
+				@if (canManage && HasTimer)
 				{
-					<p>No one's in line yet — add the first person below.</p>
+					<div class="scoreboard-controls">
+						@TimerControls
+					</div>
+				}
+			}
+			else if (!line.AutoAdvanceLine && firstActive is not null)
+			{
+				<section class="scoreboard scoreboard-simple" aria-label="Now up">
+					<div class="scoreboard-label">Now up</div>
+					<div class="scoreboard-name">@firstActive.Name</div>
+				</section>
+			}
+			</div>
+
+			<div class="line-list">
+			<section class="page-card queue-card" aria-labelledby="queue-heading">
+				<h2 id="queue-heading" class="queue-heading">Who's in line</h2>
+				@if (queue.Count == 0)
+				{
+					<div class="queue-empty">
+						<div class="queue-empty-icon" aria-hidden="true">🦗</div>
+						<p class="queue-empty-title">Nobody's in line yet.</p>
+						<p>Press <strong>🙋 Hop in line!</strong> at the bottom to go first.</p>
+						@if (canManage)
+						{
+							<p>Or use <strong>📣 Invite people</strong> to add someone.</p>
+						}
+					</div>
 				}
 				else
 				{
-					var firstActiveId = line.Participants.Where(p => !p.Removed).OrderBy(p => p.Position).FirstOrDefault()?.Id;
-					@if (line.AutoAdvanceLine)
-					{
-						var nowUp = line.Participants.FirstOrDefault(p => p.Id == firstActiveId)?.Name;
-						<section class="scoreboard @(line.IsPaused ? "paused" : "")" aria-label="Turn timer">
-							@if (nowUp is not null)
-							{
-								<div class="scoreboard-label">Now up</div>
-								<div class="scoreboard-name">@nowUp</div>
-							}
-							<div class="scoreboard-clock" id="countdown-@line.Id" role="timer">@GetTimeLeftDisplay()</div>
-							<div class="scoreboard-status">
-								<span class="scoreboard-light" aria-hidden="true"></span>
-								<span id="status-@line.Id">@GetStatusLabel()</span>
-							</div>
-						</section>
-					}
-					@foreach (var participant in line.Participants.OrderBy(x => x.Position))
-					{
-						@if (canManage)
+					<ol class="queue-list">
+						@for (int i = 0; i < queue.Count; i++)
 						{
+							var participant = queue[i];
 							<ParticipantCard @key="participant.Id"
-							Name="@participant.Name"
-							Description="@participant.Description"
-							Id="@participant.Id"
-							BackgroundColor="@participant.Color"
-							TurnCount="@participant.TurnCount"
-							IsCurrentTurn="@(participant.Id == firstActiveId)"
-							OnMoveUp="@(async () => await MoveParticipantUp(participant))"
-							OnMoveDown="@(async () => await MoveParticipantDown(participant))"
-							OnRemove="@(async () => await RemoveParticipant(participant))" />
+								Name="@participant.Name"
+								Description="@participant.Description"
+								Id="@participant.Id"
+								BackgroundColor="@participant.Color"
+								TurnCount="@participant.TurnCount"
+								IsCurrentTurn="@(participant.Id == firstActive?.Id)"
+								Place="@(i + 1)"
+								IsMe="@(participant.Id == myParticipantId)"
+								CanManage="@canManage"
+								CanMoveUp="@(i > 0)"
+								CanMoveDown="@(i < queue.Count - 1)"
+								Disabled="@busy"
+								OnMoveUp="@(async () => await MoveParticipantUp(participant))"
+								OnMoveDown="@(async () => await MoveParticipantDown(participant))"
+								OnRemove="@(async () => await RemoveParticipant(participant))" />
+						}
+					</ol>
+				}
+			</section>
+
+			<section class="page-card history-card" aria-labelledby="history-heading">
+				<div class="history-header">
+					<h2 id="history-heading" class="history-heading">
+						Out of line
+						@if (line.RemovedParticipants is { Count: > 0 })
+						{
+							<span class="history-count">(@line.RemovedParticipants.Count)</span>
+						}
+					</h2>
+					<button type="button" class="btn btn-secondary btn-sm" @onclick="() => historyCollapsed = !historyCollapsed"
+							aria-expanded="@(historyCollapsed ? "false" : "true")" aria-controls="history-list">
+						@(historyCollapsed ? "▸ Show" : "▾ Hide")
+					</button>
+				</div>
+				@if (!historyCollapsed)
+				{
+					<div id="history-list">
+						@if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
+						{
+							<p class="history-empty">People who had their turn, left, or were removed show up here.</p>
 						}
 						else
 						{
-							<ParticipantCard @key="participant.Id"
-							Name="@participant.Name"
-							Description="@participant.Description"
-							Id="@participant.Id"
-							BackgroundColor="@participant.Color"
-							TurnCount="@participant.TurnCount"
-							IsCurrentTurn="@(participant.Id == firstActiveId)"
-							OnMoveUp="@(async () => await Task.CompletedTask)"
-							OnMoveDown="@(async () => await Task.CompletedTask)"
-							OnRemove="@(async () => await Task.CompletedTask)" />
+							<ul class="queue-list">
+								@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
+								{
+									<RemovedParticipantCard @key="participant.Id"
+										Name="@participant.Name"
+										Description="@participant.Description"
+										Id="@participant.Id"
+										BackgroundColor="@participant.Color"
+										TurnCount="@participant.TurnCount"
+										CanManage="@canManage"
+										Disabled="@busy"
+										OnReAdd="@(async () => await ReAddRemovedParticipant(participant))"
+										OnDelete="@(async () => await DeleteRemovedParticipant(participant))" />
+								}
+							</ul>
 						}
-					}
+					</div>
 				}
+			</section>
 			</div>
-
-			<div class="page-card">
-			<h2 class="history-heading">
-				<button type="button" class="history-toggle" @onclick="() => historyCollapsed = !historyCollapsed" aria-expanded="@(!historyCollapsed)">
-					<span class="history-chevron @(historyCollapsed ? "collapsed" : "")" aria-hidden="true">▾</span>
-					Removed Participants History
-					@if (line.RemovedParticipants is { Count: > 0 })
-					{
-						<span class="history-count">(@line.RemovedParticipants.Count)</span>
-					}
-				</button>
-			</h2>
-			@if (historyCollapsed)
-			{
-			}
-			else if (line.RemovedParticipants == null || line.RemovedParticipants.Count == 0)
-			{
-				<p>History shows up here once someone's had a turn.</p>
-			}
-			else
-			{
-				@foreach (var participant in line.RemovedParticipants.OrderBy(x => x.Position))
-				{
-					@if (canManage)
-					{
-						<RemovedParticipantCard @key="participant.Id"
-							Name="@participant.Name"
-							Description="@participant.Description"
-							Id="@participant.Id"
-							BackgroundColor="@participant.Color"
-							TurnCount="@participant.TurnCount"
-							OnReAdd="@(async () => await ReAddRemovedParticipant(participant))"
-							OnDelete="@(async () => await DeleteRemovedParticipant(participant))" />
-					}
-					else
-					{
-						<RemovedParticipantCard @key="participant.Id"
-							Name="@participant.Name"
-							Description="@participant.Description"
-							Id="@participant.Id"
-							BackgroundColor="@participant.Color"
-							TurnCount="@participant.TurnCount"
-							OnReAdd="@(async () => await Task.CompletedTask)"
-							OnDelete="@(async () => await Task.CompletedTask)" />
-					}
-				}
-			}
 			</div>
 		</div>
 
 		<div class="toolbar">
-			<div class="toolbar-me">
-				<span>
-					You're <strong>@(myName ?? "...")</strong>
-					<button @onclick="OpenNamePrompt" class="btn btn-link btn-sm">change</button>
-				</span>
-				@if (MyPosition is int position)
+			<div class="toolbar-inner">
+				<div class="toolbar-me">
+					<div class="toolbar-who">
+						<span class="toolbar-label">You are</span>
+						<span class="toolbar-value">@(myName ?? "…")</span>
+						<button @onclick="OpenNamePrompt" class="btn btn-secondary btn-sm">✏️ Change name</button>
+					</div>
+					@if (MyPosition is int position)
+					{
+						<div class="toolbar-place @(position == 1 ? "is-up" : "")">
+							@if (position == 1)
+							{
+								<span class="toolbar-value">🎉 It's your turn!</span>
+							}
+							else
+							{
+								<span class="toolbar-label">Your place</span>
+								<span class="toolbar-value">#@position</span>
+								<span class="toolbar-ahead">@AheadText(position - 1)</span>
+							}
+						</div>
+						<button @onclick="LeaveLine" class="btn btn-secondary" disabled="@busy">👋 Leave line</button>
+					}
+					else
+					{
+						<button @onclick="JoinLine" class="btn btn-success btn-lg toolbar-join" disabled="@(busy || myName is null)">🙋 Hop in line!</button>
+					}
+				</div>
+				@if (canManage)
 				{
-					<span>— #@position in line</span>
-					<button @onclick="LeaveLine" class="btn btn-secondary" disabled="@busy">Leave line</button>
-				}
-				else
-				{
-					<button @onclick="JoinLine" class="btn btn-success" disabled="@(busy || myName is null)">Hop in line</button>
+					<button @onclick="AdvanceLine" class="btn btn-warning btn-lg toolbar-advance" disabled="@busy">Next person ▶</button>
 				}
 			</div>
-			@if (canManage)
-			{
-				<div class="toolbar-input">
-					<button @onclick="AdvanceLine" class="btn btn-warning" disabled="@busy">Advance</button>
-				</div>
-			}
 		</div>
 	</div>
 
 	@if (showNamePrompt)
 	{
-		<div class="name-prompt-backdrop">
-			<form class="name-prompt" role="dialog" aria-modal="true" aria-labelledby="name-prompt-title"
+		<div class="dialog-backdrop">
+			<form class="dialog" role="dialog" aria-modal="true" aria-labelledby="name-prompt-title"
 				  @onsubmit="SaveName" @onsubmit:preventDefault>
-				<h2 id="name-prompt-title">What's your name?</h2>
-				<p class="text-muted">Shown to others when you're in line. Leave blank to be a guest.</p>
-				<input @bind="nameInput" class="form-control" maxlength="60" placeholder="Guest" autofocus />
-				<div class="name-prompt-actions">
+				<div class="dialog-icon" aria-hidden="true">👋</div>
+				<h2 class="dialog-title" id="name-prompt-title">What's your name?</h2>
+				<p class="dialog-text">Other people in the line will see it. Leave it blank to be a guest.</p>
+				<input @bind="nameInput" class="form-control dialog-input" maxlength="60" placeholder="Guest" autofocus aria-label="Your name" />
+				<div class="dialog-actions">
 					@if (myName is not null)
 					{
-						<button type="button" @onclick="() => showNamePrompt = false" class="btn btn-secondary">Cancel</button>
+						<button type="button" @onclick="() => showNamePrompt = false" class="btn btn-secondary btn-lg">✕ Cancel</button>
 					}
-					<button type="submit" class="btn btn-primary">Continue</button>
+					<button type="submit" class="btn btn-success btn-lg">Continue ➜</button>
 				</div>
 			</form>
 		</div>
@@ -308,7 +366,59 @@ else
 	private bool panelOpen;
 	private PanelTab panelTab = PanelTab.Invite;
 
-	private void TogglePanel() => panelOpen = !panelOpen;
+	/// <summary>Opens the side panel on a tab; pressing the button for the tab that's already open closes it.</summary>
+	private void OpenPanel(PanelTab tab)
+	{
+		if (panelOpen && panelTab == tab)
+		{
+			panelOpen = false;
+			return;
+		}
+		panelTab = tab;
+		panelOpen = true;
+	}
+
+	private void ClosePanel() => panelOpen = false;
+
+	private bool HasTimer => line is { AutoAdvanceLine: true } && line.AutoAdvanceInterval.TotalMinutes >= 1;
+
+	private static string PeopleText(int count) => count switch
+	{
+		0 => "Nobody in line",
+		1 => "1 person in line",
+		_ => $"{count} people in line"
+	};
+
+	private static string AheadText(int count) => count == 1 ? "1 person ahead of you" : $"{count} people ahead of you";
+
+	// Pause/resume, restart and reset. Shown under the clock and in the Settings panel.
+	private RenderFragment TimerControls => @<div class="timer-controls">
+		@if (line?.IsPaused == true)
+		{
+			<button @onclick="ResumeTimer" class="btn btn-success timer-btn" disabled="@busy">
+				<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+				Resume timer
+			</button>
+		}
+		else
+		{
+			<button @onclick="PauseTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+				<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" /></svg>
+				Pause timer
+			</button>
+		}
+		<button @onclick="RestartTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+			<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor" /></svg>
+			Restart timer
+		</button>
+		@if (line?.IsPaused == true)
+		{
+			<button @onclick="ResetTimer" class="btn btn-secondary timer-btn" disabled="@busy">
+				<svg class="timer-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zM9.5 12 18 18V6z" fill="currentColor" /></svg>
+				Reset timer
+			</button>
+		}
+	</div>;
 
 	// Browser-remembered identity: the display name is shared across lines; participation is per line
 	private string? myName;

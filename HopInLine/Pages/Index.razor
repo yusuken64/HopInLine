@@ -4,43 +4,58 @@
 <div class="page">
     <h1 class="page-title">Hop In Line</h1>
 
-    <p class="page-subtitle">Track who's next — no sign-up, no setup. One click and share the link.</p>
+    <p class="page-subtitle">Take turns without the chaos. No sign-up. Nothing to install.</p>
 
-    <div class="page-actions mb-5">
-        <button @onclick="NavigateToStartLine" class="btn btn-warning btn-lg">Start a line</button>
-    </div>
+    <div class="home-doors">
+        <section class="page-card home-door home-door-start" aria-labelledby="start-heading">
+            <div class="home-door-icon" aria-hidden="true">✨</div>
+            <h2 id="start-heading">Start a new line</h2>
+            <p class="home-door-text">You're in charge. You'll get a link to share.</p>
+            <button @onclick="NavigateToStartLine" class="btn btn-warning btn-lg btn-wide">Start a line</button>
+        </section>
 
-    <div class="page-card">
-        <h2>Join a line</h2>
-        <form @onsubmit="NavigateToJoinLine" @onsubmit:preventDefault>
-            <div class="form-group">
-                <label for="lineId">Line code</label>
-                <input @bind="lineID" id="lineId" class="form-control" placeholder="Enter the line code here" @aria-describedby="joinError != null ? "join-error" : null" />
-            </div>
-            @if (joinError != null)
-            {
-                <div class="alert alert-danger" role="alert" id="join-error">@joinError</div>
-            }
-            <div class="page-actions">
-                <button type="submit" class="btn btn-warning btn-lg">Join</button>
-            </div>
-        </form>
+        <section class="page-card home-door home-door-join" aria-labelledby="join-heading">
+            <div class="home-door-icon" aria-hidden="true">🎟️</div>
+            <h2 id="join-heading">Join a line</h2>
+            <form class="home-join-form" @onsubmit="NavigateToJoinLine" @onsubmit:preventDefault>
+                <label for="lineId" class="form-label">Type the code you were given</label>
+                <input @bind="lineID" id="lineId" class="form-control code-input" placeholder="Line code"
+                       autocomplete="off" autocapitalize="characters" spellcheck="false"
+                       aria-describedby="@(joinError != null ? "join-error" : null)" />
+                @if (joinError != null)
+                {
+                    <div class="alert alert-danger" role="alert" id="join-error">@joinError</div>
+                }
+                <button type="submit" class="btn btn-success btn-lg btn-wide">Join</button>
+            </form>
+        </section>
     </div>
 
     @if (recentLines.Count > 0)
     {
-        <div class="page-card">
-            <h2>Your lines</h2>
-            <ul class="list-group">
+        <section class="page-card" aria-labelledby="recent-heading">
+            <h2 id="recent-heading">Your lines</h2>
+            <p class="recent-hint">Lines you opened on this device. Tap one to go back to it.</p>
+            <ul class="recent-lines">
                 @foreach (var entry in recentLines)
                 {
-                    <li class="list-group-item">
-                        <a href="@entry.Link">@entry.Name</a>
-                        <span class="text-muted">(@(entry.Role == "manage" ? "manager" : "viewer"))</span>
+                    <li>
+                        <a class="recent-line" href="@entry.Link">
+                            <span class="recent-line-name">@entry.Name</span>
+                            @if (entry.Role == "manage")
+                            {
+                                <span class="tag tag-yellow">👑 You run this</span>
+                            }
+                            else
+                            {
+                                <span class="tag tag-blue">👀 You visited</span>
+                            }
+                            <span class="recent-line-go" aria-hidden="true">➜</span>
+                        </a>
                     </li>
                 }
             </ul>
-        </div>
+        </section>
     }
 </div>
 

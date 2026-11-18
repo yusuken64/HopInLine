@@ -3,12 +3,13 @@
 
 @if (ConfirmService.IsVisible)
 {
-    <div class="confirm-backdrop">
-        <div class="confirm-dialog" role="alertdialog" aria-modal="true">
-            <p class="confirm-message">@ConfirmService.Message</p>
-            <div class="confirm-actions">
-                <button class="btn btn-secondary" @onclick="() => ConfirmService.Cancel()">Cancel</button>
-                <button class="btn btn-danger" @onclick="() => ConfirmService.Confirm()">Confirm</button>
+    <div class="dialog-backdrop">
+        <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-message">
+            <div class="dialog-icon" aria-hidden="true">⚠️</div>
+            <h2 class="dialog-title" id="confirm-message">@ConfirmService.Message</h2>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary btn-lg" @onclick="() => ConfirmService.Cancel()">No, go back</button>
+                <button class="btn btn-danger btn-lg" @onclick="() => ConfirmService.Confirm()">Yes</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,73 @@
+h2 {
+    text-align: center;
+    margin: var(--space-6) 0 var(--space-4);
+}
+
+.page-card > h2:first-child {
+    margin-top: 0;
+}
+
+.edit-hint {
+    text-align: center;
+    font-weight: var(--font-weight-medium);
+    color: var(--ink-soft);
+    margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+.edit-timer {
+    margin: var(--space-5) 0 0;
+    padding: var(--space-5);
+    background-color: var(--blue-50);
+    border: var(--border-chunky);
+    border-radius: var(--radius-lg);
+}
+
+.edit-timer:disabled {
+    background-color: var(--paper-dim);
+}
+
+.edit-timer legend {
+    float: none;
+    width: auto;
+    margin: 0;
+    padding: 0 var(--space-3);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: var(--radius-pill);
+}
+
+.edit-timer-off {
+    margin: var(--space-4) 0 0;
+    padding: var(--space-3) var(--space-4);
+    font-weight: var(--font-weight-medium);
+    background-color: var(--yellow-50);
+    border: 0.15rem dashed var(--ink);
+    border-radius: var(--radius-md);
+}
+
+.edit-timer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 0 var(--space-5);
+    margin-top: var(--space-4);
+}
+
+.edit-timer-grid .form-group {
+    margin-bottom: var(--space-3);
+}
+
+.edit-error {
+    margin: var(--space-5) 0 0;
+}
+
+.edit-danger-text {
+    text-align: center;
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
+.danger-card .page-actions {
+    margin-top: var(--space-4);
+}

@@ -1,20 +1,23 @@
 .wizard {
-    max-width: 960px;
+    max-width: 64rem;
     margin: 0 auto;
 }
 
 .wizard-title {
-    color: var(--color-white);
+    font-size: var(--font-size-3xl);
     text-align: center;
+    text-shadow: 0.12rem 0.15rem 0 var(--paper);
 }
 
+/* Step indicator: big numbered dots joined by a thick line */
 .wizard-steps {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    gap: var(--space-4);
     list-style: none;
     padding: 0;
-    margin: var(--space-5) 0;
-    counter-reset: none;
+    margin: var(--space-5) auto var(--space-6);
+    max-width: 36rem;
 }
 
 .wizard-steps li {
@@ -23,40 +26,53 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-    color: var(--color-gray-400);
     position: relative;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--ink-soft);
 }
 
-/* Connector line between step circles */
 .wizard-steps li:not(:first-child)::before {
     content: "";
     position: absolute;
-    top: 20px;
-    right: calc(50% + 28px);
-    width: calc(100% - 56px);
-    border-top: 2px solid var(--color-gray-300);
+    top: 1.65rem;
+    right: calc(50% + 2.25rem);
+    width: calc(100% - 4.5rem + var(--space-4));
+    border-top: 0.3rem solid var(--ink);
+    opacity: 0.35;
+}
+
+.wizard-steps li.done:not(:first-child)::before,
+.wizard-steps li.active:not(:first-child)::before {
+    opacity: 1;
 }
 
 .wizard-step-number {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-pill);
-    border: 2px solid currentColor;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: var(--font-size-lg);
+    color: var(--ink);
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
 }
 
 .wizard-steps li.active,
 .wizard-steps li.done {
-    color: var(--color-accent);
+    color: var(--ink);
 }
 
 .wizard-steps li.active .wizard-step-number {
-    background-color: var(--color-accent);
-    color: var(--color-charcoal-blue);
-    border-color: var(--color-accent);
+    background-color: var(--yellow);
+    transform: scale(1.12);
+}
+
+.wizard-steps li.done .wizard-step-number {
+    color: var(--paper);
+    background-color: var(--green);
 }
 
 .wizard-step-label {
@@ -64,64 +80,187 @@
 }
 
 .wizard-card {
-    background-color: var(--color-white);
-    border: 1px solid var(--color-gray-300);
-    border-radius: var(--radius-md);
-    padding: var(--space-5);
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-6);
 }
 
 .wizard-card h2 {
     text-align: center;
-    margin: var(--space-4) 0;
+    margin: var(--space-6) 0 var(--space-4);
+}
+
+.wizard-top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.wizard-tip {
+    flex: 1;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    background-color: var(--yellow-50);
+    border: 0.15rem dashed var(--ink);
+    border-radius: var(--radius-md);
 }
 
 .wizard-exit {
-    display: inline-block;
-    margin-bottom: var(--space-2);
-}
-
-.wizard-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
-}
-
-.wizard-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-4);
-    background-color: var(--color-white);
-    border: 2px solid var(--color-gray-300);
-    border-radius: var(--radius-md);
-    text-align: center;
-    cursor: pointer;
-}
-
-.wizard-option:hover {
-    border-color: var(--color-gray-500);
-}
-
-.wizard-option.selected {
-    border-color: var(--color-brand-500);
-    box-shadow: 0 0 0 2px var(--color-brand-500);
-}
-
-.wizard-option-icon {
-    font-size: 2.5rem;
+    flex-shrink: 0;
 }
 
 .wizard-hint {
     text-align: center;
-    font-weight: bold;
-    margin-top: var(--space-3);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--ink-soft);
+    margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+/* Big choice tiles: raised when not picked, pressed in and yellow when picked */
+.wizard-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.wizard-option {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4) var(--space-5);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--ink);
+    text-align: center;
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.wizard-option strong {
+    font-size: var(--font-size-lg);
+}
+
+.wizard-option:hover {
+    background-color: var(--blue-50);
+}
+
+.wizard-option.selected {
+    background-color: var(--yellow);
+    transform: translateY(0.3rem);
+    box-shadow: var(--shadow-pressed);
+}
+
+.wizard-option:focus-visible {
+    box-shadow: var(--shadow-md), var(--shadow-focus);
+}
+
+.wizard-option.selected:focus-visible {
+    box-shadow: var(--shadow-pressed), var(--shadow-focus);
+}
+
+.wizard-option-check {
+    position: absolute;
+    top: calc(-1 * var(--space-4));
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.1em 0.7em;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    color: var(--paper);
+    background-color: var(--green);
+    border: 0.15rem solid var(--ink);
+    border-radius: var(--radius-pill);
+    visibility: hidden;
+}
+
+.wizard-option.selected .wizard-option-check {
+    visibility: visible;
+}
+
+.wizard-option-icon {
+    font-size: 3.5rem;
+    line-height: 1;
+}
+
+.wizard-timer {
+    margin: var(--space-5) 0 0;
+    padding: var(--space-5);
+    background-color: var(--blue-50);
+    border: var(--border-chunky);
+    border-radius: var(--radius-lg);
+}
+
+.wizard-timer legend {
+    float: none;
+    width: auto;
+    margin: 0;
+    padding: 0 var(--space-3);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: var(--radius-pill);
+}
+
+.wizard-timer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 0 var(--space-5);
+    margin-top: var(--space-4);
+}
+
+.wizard-timer-grid .form-group {
+    margin-bottom: var(--space-3);
+}
+
+.wizard-card .alert {
+    margin: var(--space-5) 0 0;
 }
 
 .wizard-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-3);
-    margin-top: var(--space-5);
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+.wizard-next {
+    min-width: 14rem;
+}
+
+@media (max-width: 540px) {
+    .wizard-card {
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .wizard-top {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .wizard-exit {
+        align-self: flex-end;
+    }
+
+    .wizard-actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .wizard-actions {
+        flex-direction: column-reverse;
+    }
 }

@@ -1,4 +1,30 @@
 .navbar-brand {
-    color: var(--color-white);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0;
+    margin: 0;
+    color: var(--paper);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.02em;
     text-decoration: none;
+    text-shadow: 0.1rem 0.15rem 0 var(--ink);
+}
+
+.navbar-brand:hover {
+    color: var(--yellow);
+}
+
+.brand-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.9rem;
+    text-shadow: none;
+    background-color: var(--yellow);
+    border: var(--border-chunky);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
 }

@@ -1,23 +1,37 @@
 ﻿@using HopInLine.Data.Line
-@using HopInLine.Shared
 
-<!-- RemovedParticipantCard.razor -->
-<div class="participant-card">
-    <span class="participant-badge" style="background-color: @BackgroundColor;" aria-hidden="true"></span>
+<li class="participant-card is-removed">
+    <span class="participant-place" style="background-color: @BackgroundColor;" aria-hidden="true">@Initial</span>
     <div class="participant-info">
-        <span>@Name — @TurnCount turn(s)</span>
-        <p>@Description</p>
+        <div class="participant-name-row">
+            <span class="participant-name">@Name</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="participant-desc">@Description</p>
+        }
+        <p class="participant-turns">@ParticipantCard.TurnText(TurnCount)</p>
     </div>
-    <KebabMenu TriggerAriaLabel="@($"Actions for {Name}")" Items="@GetMenuItems()" />
-</div>
-
+    @if (CanManage)
+    {
+        <div class="participant-actions">
+            <button class="btn btn-success btn-sm" @onclick="ReAdd" disabled="@Disabled" aria-label="@($"Add {Name} back to the line")">↩️ Put back in line</button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="Delete" disabled="@Disabled" aria-label="@($"Permanently delete {Name}")">🗑️ Delete</button>
+        </div>
+    }
+</li>
 
 @code {
     [Parameter] public string Name { get; set; } = default!;
-    [Parameter] public string Description { get; set; } = default!;
+    [Parameter] public string? Description { get; set; }
     [Parameter] public string Id { get; set; } = default!;
     [Parameter] public string BackgroundColor { get; set; } = default!;
     [Parameter] public int TurnCount { get; set; }
+
+    /// <summary>Shows the re-add and delete buttons. Only the manager can use them.</summary>
+    [Parameter] public bool CanManage { get; set; }
+    /// <summary>Disables the buttons while another change is being saved.</summary>
+    [Parameter] public bool Disabled { get; set; }
 
     [Parameter] public EventCallback OnReAdd { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
@@ -25,21 +39,7 @@
     private async Task ReAdd() => await OnReAdd.InvokeAsync(null);
     private async Task Delete() => await OnDelete.InvokeAsync(null);
 
-    private List<KebabMenuItem> GetMenuItems() => new()
-    {
-        new KebabMenuItem
-        {
-            Label = "Re-Add",
-            AriaLabel = $"Add {Name} back to the line",
-            OnClick = EventCallback.Factory.Create(this, ReAdd),
-            IsDangerous = false
-        },
-        new KebabMenuItem
-        {
-            Label = "Delete",
-            AriaLabel = $"Permanently delete {Name}",
-            OnClick = EventCallback.Factory.Create(this, Delete),
-            IsDangerous = true
-        }
-    };
+    private string Initial => string.IsNullOrWhiteSpace(Name)
+        ? "?"
+        : System.Globalization.StringInfo.GetNextTextElement(Name.Trim()).ToUpperInvariant();
 }

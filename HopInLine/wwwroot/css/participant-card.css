@@ -1,41 +1,137 @@
-.participant-card {
+/* One person in the line: big place number, big name, and (for the manager) big buttons */
+.queue-list {
     display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    background: var(--color-gray-50);
-    border-radius: var(--radius-pill);
-    padding: var(--space-3) var(--space-4);
-    margin-bottom: var(--space-2);
-    box-shadow: var(--shadow-sm);
-    position: relative;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.participant-card-hero {
-    border: 2px solid var(--color-brand-500);
+.participant-card {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background-color: var(--paper);
+    border: var(--border-chunky);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
 }
 
-.participant-badge {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    flex-shrink: 0;
+.participant-card.is-me {
+    background-color: var(--blue-50);
 }
 
-.participant-hero-badge {
-    display: inline-block;
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-brand-500);
-    margin-left: var(--space-2);
+/* The person whose turn it is: yellow, thicker and a bit bigger */
+.participant-card.is-up {
+    background-color: var(--yellow-50);
+    border-width: 0.3rem;
+    padding: var(--space-5) var(--space-5);
+    box-shadow: var(--shadow-lg);
+}
+
+.participant-card.is-removed {
+    background-color: var(--paper-dim);
+    box-shadow: var(--shadow-sm);
+}
+
+.participant-place {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    color: var(--ink);
+    border: var(--border-chunky);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+}
+
+.is-up .participant-place {
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: var(--font-size-2xl);
+}
+
+.is-removed .participant-place {
+    width: 3rem;
+    height: 3rem;
+    font-size: var(--font-size-lg);
 }
 
 .participant-info {
-    flex: 1;
+    flex: 1 1 9rem;
     min-width: 0;
 }
 
-.participant-info p {
-    word-break: break-word;
+.participant-name-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+
+.participant-name {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.is-up .participant-name {
+    font-size: var(--font-size-2xl);
+}
+
+.is-removed .participant-name {
+    font-size: var(--font-size-lg);
+}
+
+.participant-desc {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-base);
+    overflow-wrap: anywhere;
+}
+
+.participant-turns {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--ink-soft);
+}
+
+.participant-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-left: auto;
+}
+
+/* Phones: buttons go on their own row under the name and share the width */
+@media (max-width: 640px) {
+    .participant-card {
+        padding: var(--space-4);
+    }
+
+    .participant-actions {
+        width: 100%;
+    }
+
+    .participant-actions > .btn,
+    .participant-actions > .kebab-menu {
+        flex: 1 1 0;
+    }
+
+    .participant-actions .btn {
+        width: 100%;
+        flex-direction: column;
+        gap: 0;
+        padding-left: var(--space-1);
+        padding-right: var(--space-1);
+    }
 }

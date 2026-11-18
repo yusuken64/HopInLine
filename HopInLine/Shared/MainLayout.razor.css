@@ -3,12 +3,11 @@ main {
 }
 
 .top-row {
-    background-color: var(--color-charcoal-blue);
-    color: var(--color-white);
-    padding: var(--space-4) !important;
-    height: 3.5rem;
     display: flex;
     align-items: center;
-    font-weight: var(--font-weight-bold);
-    font-size: var(--font-size-lg);
+    min-height: 4.5rem;
+    padding: var(--space-3) var(--space-5);
+    background-color: var(--red);
+    border-bottom: var(--border-chunky);
+    box-shadow: 0 0.3rem 0 rgba(27, 35, 80, 0.25);
 }

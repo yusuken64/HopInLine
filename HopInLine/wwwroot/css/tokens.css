@@ -1,70 +1,81 @@
+/* Chunky "toy box" design tokens.
+   Every size is in rem, and the root font size grows with the screen width (see site.css),
+   so the whole UI scales up together. A phone stays chunky and a TV across the room stays readable. */
 :root {
-  /* Neutral color scale */
-  --color-white: #ffffff;
-  --color-gray-50: #f8f9fa;
-  --color-gray-100: #f1f3f5;
-  --color-gray-200: #e9ecef;
-  --color-gray-300: #dee2e6;
-  --color-gray-400: #ced4da;
-  --color-gray-500: #adb5bd;
-  --color-gray-600: #6c757d;
-  --color-gray-700: #495057;
-  --color-gray-800: #343a40;
-  --color-gray-900: #212529;
+  /* Ink: outlines, text and the solid "toy" shadows */
+  --ink: #1b2350;
+  --ink-soft: #424a78;
+  --ink-faint: #8a90b4;
 
-  /* Palette */
-  --color-burnt-peach: #ce6d49;
-  --color-dusty-grape: #574b75;
-  --color-charcoal-blue: #36444e;
-  --color-honey-bronze: #e1b057;
-  --color-dusty-olive: #668955;
+  /* Toy primaries. Text color pairs: white on red/blue/green, ink on yellow/sky/cream */
+  --red: #d92b3a;
+  --red-600: #b81f2d;
+  --red-50: #ffe3e6;
+  --yellow: #ffcc29;
+  --yellow-600: #f2b705;
+  --yellow-50: #fff4c9;
+  --blue: #1f6fe0;
+  --blue-600: #1559bd;
+  --blue-50: #dcecff;
+  --green: #22913b;
+  --green-600: #1a7530;
+  --green-50: #dcf5e1;
+  --orange: #ff8a1f;
+  --sky: #8fd3ff;
+  --sky-deep: #6fc3f7;
+  --paper: #ffffff;
+  --paper-dim: #eef0f7;
 
-  /* Brand */
-  --color-brand-500: var(--color-dusty-grape);
-  --color-brand-600: #463c5f;
-  --color-accent: var(--color-honey-bronze);
-  --color-accent-600: #d49d3c;
-
-  /* Semantic colors */
-  --color-danger: var(--color-burnt-peach);
-  --color-danger-bg: #f8e6df;
-  --color-danger-border: var(--color-burnt-peach);
-  --color-success: var(--color-dusty-olive);
-  --color-pause: var(--color-burnt-peach);
-  --color-play: var(--color-dusty-olive);
-  --color-focus-ring: var(--color-dusty-grape);
+  /* Kept so older class names still resolve */
+  --color-white: var(--paper);
+  --color-brand-500: var(--blue);
+  --color-brand-600: var(--blue-600);
+  --color-accent: var(--yellow);
+  --color-danger: var(--red);
+  --color-success: var(--green);
+  --color-pause: var(--red);
+  --color-play: #39d353;
+  --color-focus-ring: var(--blue);
 
   /* Spacing scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
 
-  /* Type scale */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.25rem;
-  --font-size-xl: 1.5rem;
-  --font-size-2xl: 2rem;
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
+  /* Type scale (relative to the fluid root size) */
+  --font-family: "Fredoka", "Nunito", "Varela Round", ui-rounded, "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
+  --font-clock: "Cascadia Mono", Consolas, "SF Mono", Menlo, "Roboto Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+  --font-size-xs: 0.875rem;
+  --font-size-sm: 1rem;
+  --font-size-base: 1.25rem;
+  --font-size-lg: 1.5rem;
+  --font-size-xl: 2rem;
+  --font-size-2xl: 2.5rem;
+  --font-size-3xl: 3.25rem;
+  --font-weight-regular: 500;
+  --font-weight-medium: 600;
   --font-weight-bold: 700;
 
-  /* Radius / shadow */
-  --radius-sm: 6px;
-  --radius-md: 12px;
+  /* Chunky shapes */
+  --border-width: 0.2rem;
+  --border-chunky: var(--border-width) solid var(--ink);
+  --radius-sm: 0.75rem;
+  --radius-md: 1.25rem;
+  --radius-lg: 1.75rem;
   --radius-pill: 999px;
-  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.15);
-  --shadow-focus: 0 0 0 3px rgba(87, 75, 117, 0.35);
+  --shadow-sm: 0 0.2rem 0 var(--ink);
+  --shadow-md: 0 0.35rem 0 var(--ink);
+  --shadow-lg: 0 0.5rem 0 var(--ink);
+  --shadow-pressed: 0 0.05rem 0 var(--ink);
+  --shadow-focus: 0 0 0 0.2rem var(--paper), 0 0 0 0.45rem var(--blue);
 
   /* Motion */
-  --transition-fast: 120ms;
+  --transition-fast: 90ms;
   --transition-base: 200ms;
   --ease-standard: ease;
 
@@ -81,5 +92,4 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
-  border-radius: var(--radius-sm);
 }

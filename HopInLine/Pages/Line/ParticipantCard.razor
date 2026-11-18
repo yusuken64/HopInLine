@@ -1,61 +1,100 @@
 ﻿@using HopInLine.Data.Line
-@using HopInLine.Shared
 
-<!-- ParticipantCard.razor -->
-<div class="participant-card @(IsCurrentTurn ? "participant-card-hero" : "")">
-    <span class="participant-badge" style="background-color: @BackgroundColor;" aria-hidden="true"></span>
+<li class="participant-card @(IsCurrentTurn ? "is-up" : "") @(IsMe ? "is-me" : "")">
+    <span class="participant-place" style="background-color: @BackgroundColor;" aria-hidden="true">@Place</span>
     <div class="participant-info">
-        <div>
-            <span>@Name — @TurnCount turn(s)</span>
+        <div class="participant-name-row">
+            <span class="participant-name"><span class="visually-hidden">Number @Place: </span>@Name</span>
             @if (IsCurrentTurn)
             {
-                <span class="participant-hero-badge">Up now</span>
+                <span class="tag tag-yellow">⭐ Up now</span>
+            }
+            @if (IsMe)
+            {
+                <span class="tag tag-blue">🙋 That's you!</span>
             }
         </div>
-        <p>@Description</p>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="participant-desc">@Description</p>
+        }
+        <p class="participant-turns">@TurnText(TurnCount)</p>
     </div>
-    <KebabMenu TriggerAriaLabel="@($"Actions for {Name}")" Items="@GetMenuItems()" />
-</div>
-
+    @if (CanManage)
+    {
+        <div class="participant-actions">
+            <button class="btn btn-secondary btn-sm" @onclick="MoveUp" disabled="@(Disabled || !CanMoveUp)" aria-label="@($"Move {Name} up")">⬆️ Up</button>
+            <button class="btn btn-secondary btn-sm" @onclick="MoveDown" disabled="@(Disabled || !CanMoveDown)" aria-label="@($"Move {Name} down")">⬇️ Down</button>
+            <KebabMenu TriggerAriaLabel="@($"More actions for {Name}")" Items="@GetMenuItems()" Disabled="@Disabled" />
+        </div>
+    }
+</li>
 
 @code {
     [Parameter] public string Name { get; set; } = default!;
-    [Parameter] public string Description { get; set; } = default!;
+    [Parameter] public string? Description { get; set; }
     [Parameter] public string Id { get; set; } = default!;
     [Parameter] public string BackgroundColor { get; set; } = default!;
     [Parameter] public int TurnCount { get; set; }
     [Parameter] public bool IsCurrentTurn { get; set; }
 
+    /// <summary>1-based place in line, shown in the big circle.</summary>
+    [Parameter] public int Place { get; set; }
+    /// <summary>True when this browser is this participant.</summary>
+    [Parameter] public bool IsMe { get; set; }
+    /// <summary>Shows the move and remove buttons. Only the manager can use them.</summary>
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public bool CanMoveUp { get; set; } = true;
+    [Parameter] public bool CanMoveDown { get; set; } = true;
+    /// <summary>Disables the buttons while another change is being saved.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    // Inline buttons
     [Parameter] public EventCallback OnMoveUp { get; set; }
     [Parameter] public EventCallback OnMoveDown { get; set; }
+
+    // "More" menu. Each optional item shows only when the parent wires its callback.
+    [Parameter] public EventCallback OnMoveToFront { get; set; }
+    [Parameter] public EventCallback OnMoveToNext { get; set; }
+    [Parameter] public EventCallback OnMoveToBack { get; set; }
+    [Parameter] public EventCallback OnRename { get; set; }
     [Parameter] public EventCallback OnRemove { get; set; }
 
     private async Task MoveUp() => await OnMoveUp.InvokeAsync(null);
     private async Task MoveDown() => await OnMoveDown.InvokeAsync(null);
-    private async Task Remove() => await OnRemove.InvokeAsync(null);
 
-    private List<KebabMenuItem> GetMenuItems() => new()
+    private List<KebabMenuItem> GetMenuItems()
     {
-        new KebabMenuItem
+        var items = new List<KebabMenuItem>();
+
+        // Already up now at place 1
+        if (OnMoveToFront.HasDelegate && Place != 1)
         {
-            Label = "Move Up",
-            AriaLabel = $"Move {Name} up",
-            OnClick = EventCallback.Factory.Create(this, MoveUp),
-            IsDangerous = false
-        },
-        new KebabMenuItem
-        {
-            Label = "Move Down",
-            AriaLabel = $"Move {Name} down",
-            OnClick = EventCallback.Factory.Create(this, MoveDown),
-            IsDangerous = false
-        },
-        new KebabMenuItem
-        {
-            Label = "Remove",
-            AriaLabel = $"Remove {Name} from the line",
-            OnClick = EventCallback.Factory.Create(this, Remove),
-            IsDangerous = true
+            items.Add(new KebabMenuItem { Label = "⭐ Make up now", AriaLabel = $"Make {Name} up now", OnClick = OnMoveToFront });
         }
+        // Already up next at place 2
+        if (OnMoveToNext.HasDelegate && Place != 2)
+        {
+            items.Add(new KebabMenuItem { Label = "⏭️ Make up next", AriaLabel = $"Make {Name} up next", OnClick = OnMoveToNext });
+        }
+        // Already last
+        if (OnMoveToBack.HasDelegate && CanMoveDown)
+        {
+            items.Add(new KebabMenuItem { Label = "⏬ Send to the back", AriaLabel = $"Send {Name} to the back of the line", OnClick = OnMoveToBack });
+        }
+        if (OnRename.HasDelegate)
+        {
+            items.Add(new KebabMenuItem { Label = "✏️ Rename", AriaLabel = $"Rename {Name}", OnClick = OnRename });
+        }
+        items.Add(new KebabMenuItem { Label = "✖️ Remove from line", AriaLabel = $"Remove {Name} from the line", OnClick = OnRemove, IsDangerous = true });
+
+        return items;
+    }
+
+    internal static string TurnText(int turns) => turns switch
+    {
+        0 => "No turns yet",
+        1 => "Had 1 turn",
+        _ => $"Had {turns} turns"
     };
 }

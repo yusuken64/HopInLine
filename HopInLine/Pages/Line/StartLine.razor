@@ -5,48 +5,52 @@
    The line is created on the last step, then the manager lands on the line page, which handles inviting people. *@
 
 <div class="wizard">
-    <h1 class="wizard-title">Before we start</h1>
+    <h1 class="wizard-title">Let's make a line!</h1>
 
-    <ol class="wizard-steps">
+    <ol class="wizard-steps" aria-label="Steps">
         @for (int i = 0; i < StepNames.Length; i++)
         {
             var n = i + 1;
-            <li class="@(n == step ? "active" : n < step ? "done" : "")">
-                <span class="wizard-step-number">@n</span>
-                <span class="wizard-step-label">@StepNames[i]</span>
+            <li class="@(n == step ? "active" : n < step ? "done" : "")" aria-current="@(n == step ? "step" : null)">
+                <span class="wizard-step-number" aria-hidden="true">@(n < step ? "✓" : n.ToString())</span>
+                <span class="wizard-step-label"><span class="visually-hidden">Step @n: </span>@StepNames[i]</span>
             </li>
         }
     </ol>
 
     <div class="wizard-card">
-        <a href="/" class="wizard-exit">Exit</a>
-
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger" role="alert">@errorMessage</div>
-        }
+        <div class="wizard-top">
+            <p class="wizard-tip">
+                <span aria-hidden="true">👉</span>
+                Everything here is optional. You can just press <strong>@(step < StepNames.Length ? "Next" : "Create my line")</strong>.
+            </p>
+            <a href="/" class="btn btn-secondary btn-sm wizard-exit">✕ Exit</a>
+        </div>
 
         @switch (step)
         {
             case 1:
-                <h2>Tell us about this line</h2>
+                <h2>Name your line</h2>
                 <div class="form-group">
                     <label for="lineName">Line name</label>
-                    <input id="lineName" @bind="lineName" class="form-control" maxlength="100" placeholder="@DefaultLineName" />
+                    <input id="lineName" @bind="lineName" class="form-control" maxlength="100" placeholder="@DefaultLineName" aria-describedby="lineName-hint" />
+                    <span class="form-hint" id="lineName-hint">Leave it blank to call it "@DefaultLineName".</span>
                 </div>
                 <div class="form-group">
-                    <label for="description">Description (optional)</label>
-                    <input id="description" @bind="description" class="form-control" maxlength="500" placeholder="What's this line for?" />
+                    <label for="description">What's it for? (optional)</label>
+                    <input id="description" @bind="description" class="form-control" maxlength="500" placeholder="Example: Karaoke night" />
                 </div>
 
                 <h2>How should it run?</h2>
+                <p class="wizard-hint">Tap one.</p>
                 <div class="wizard-options">
                     @foreach (var option in LineTypes)
                     {
                         <button type="button"
                                 class="wizard-option @(lineType == option.Type ? "selected" : "")"
-                                aria-pressed="@(lineType == option.Type)"
+                                aria-pressed="@(lineType == option.Type ? "true" : "false")"
                                 @onclick="() => lineType = option.Type">
+                            <span class="wizard-option-check" aria-hidden="true">✓ Picked</span>
                             <span class="wizard-option-icon" aria-hidden="true">@option.Icon</span>
                             <strong>@option.Title</strong>
                             <span>@option.Blurb</span>
@@ -56,18 +60,26 @@
 
                 @if (lineType != LineType.Simple)
                 {
-                    <div class="form-group">
-                        <label for="interval">Minutes per turn</label>
-                        <input id="interval" type="number" @bind="intervalMinutes" class="form-control" min="1" max="1440" step="1" />
-                    </div>
-                    <div class="form-group">
-                        <label for="graceSeconds">Grace time between turns (seconds, 0 for none)</label>
-                        <input id="graceSeconds" type="number" @bind="graceSeconds" class="form-control" min="0" step="1" />
-                    </div>
-                    <div class="form-group">
-                        <label for="startCountdownSeconds">Start countdown (seconds, 0 for none)</label>
-                        <input id="startCountdownSeconds" type="number" @bind="startCountdownSeconds" class="form-control" min="0" step="1" />
-                    </div>
+                    <fieldset class="wizard-timer">
+                        <legend><span aria-hidden="true">⏱️</span> Timer settings</legend>
+                        <div class="wizard-timer-grid">
+                            <div class="form-group">
+                                <label for="interval">Minutes per turn</label>
+                                <input id="interval" type="number" @bind="intervalMinutes" class="form-control" min="1" max="1440" step="1" aria-describedby="interval-hint" />
+                                <span class="form-hint" id="interval-hint">From 1 to 1440.</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="graceSeconds">Grace time between turns</label>
+                                <input id="graceSeconds" type="number" @bind="graceSeconds" class="form-control" min="0" step="1" aria-describedby="grace-hint" />
+                                <span class="form-hint" id="grace-hint">Seconds to wait before the next person's time starts. 0 means no wait.</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="startCountdownSeconds">Start countdown</label>
+                                <input id="startCountdownSeconds" type="number" @bind="startCountdownSeconds" class="form-control" min="0" step="1" aria-describedby="countdown-hint" />
+                                <span class="form-hint" id="countdown-hint">Seconds of "get ready" when you start or restart the timer. 0 means none.</span>
+                            </div>
+                        </div>
+                    </fieldset>
                 }
                 break;
 
@@ -75,36 +87,46 @@
                 <h2>Tell us about you</h2>
                 <div class="form-group">
                     <label for="yourName">Your name (optional)</label>
-                    <input id="yourName" @bind="yourName" class="form-control" maxlength="60" placeholder="Guest" />
+                    <input id="yourName" @bind="yourName" class="form-control" maxlength="60" placeholder="Guest" aria-describedby="yourName-hint" />
+                    <span class="form-hint" id="yourName-hint">Other people will see this name in the line.</span>
                 </div>
+                <h2>Are you taking a turn too?</h2>
+                <p class="wizard-hint">Tap one.</p>
                 <div class="wizard-options">
-                    <button type="button" class="wizard-option @(joinSelf ? "selected" : "")" aria-pressed="@joinSelf" @onclick="() => joinSelf = true">
+                    <button type="button" class="wizard-option @(joinSelf ? "selected" : "")" aria-pressed="@(joinSelf ? "true" : "false")" @onclick="() => joinSelf = true">
+                        <span class="wizard-option-check" aria-hidden="true">✓ Picked</span>
                         <span class="wizard-option-icon" aria-hidden="true">🙋</span>
-                        <strong>I'm in line</strong>
+                        <strong>Yes, I'm in line</strong>
                         <span>Add me as the first person.</span>
                     </button>
-                    <button type="button" class="wizard-option @(!joinSelf ? "selected" : "")" aria-pressed="@(!joinSelf)" @onclick="() => joinSelf = false">
+                    <button type="button" class="wizard-option @(!joinSelf ? "selected" : "")" aria-pressed="@(joinSelf ? "false" : "true")" @onclick="() => joinSelf = false">
+                        <span class="wizard-option-check" aria-hidden="true">✓ Picked</span>
                         <span class="wizard-option-icon" aria-hidden="true">📋</span>
-                        <strong>Just managing</strong>
+                        <strong>No, just managing</strong>
                         <span>I'll run the line but won't take a turn.</span>
                     </button>
                 </div>
-                <p class="wizard-hint">You can invite and add people from the line page.</p>
+                <p class="wizard-hint">You can invite and add people on the next screen.</p>
                 break;
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
         }
 
         <div class="wizard-actions">
             @if (step > 1)
             {
-                <button @onclick="() => step--" class="btn btn-secondary" disabled="@busy">Back</button>
+                <button @onclick="() => step--" class="btn btn-secondary btn-lg" disabled="@busy">← Back</button>
             }
             @if (step < StepNames.Length)
             {
-                <button @onclick="Next" class="btn btn-warning btn-lg">Next</button>
+                <button @onclick="Next" class="btn btn-warning btn-lg wizard-next">Next →</button>
             }
             else
             {
-                <button @onclick="CreateLine" class="btn btn-warning btn-lg" disabled="@busy">Create line</button>
+                <button @onclick="CreateLine" class="btn btn-success btn-lg wizard-next" disabled="@busy">@(busy ? "Making your line…" : "✓ Create my line")</button>
             }
         </div>
     </div>
@@ -122,13 +144,13 @@
 
     private record LineTypeOption(LineType Type, string Icon, string Title, string Blurb);
 
-    private static readonly string[] StepNames = ["Line information", "Your information"];
+    private static readonly string[] StepNames = ["About the line", "About you"];
 
     private static readonly LineTypeOption[] LineTypes =
     [
-        new(LineType.Simple, "➡️", "Simple queue", "Advance by hand when someone's done."),
-        new(LineType.Timed, "⏱️", "Timed turns", "Auto-advance after a set time."),
-        new(LineType.Rotation, "🔁", "Rotation", "Timed turns; people rejoin the back after their turn."),
+        new(LineType.Simple, "➡️", "Simple line", "You press \"Next person\" when someone is done."),
+        new(LineType.Timed, "⏱️", "Timed turns", "Everyone gets the same time. It moves on by itself."),
+        new(LineType.Rotation, "🔁", "Rotation", "Timed turns, and people go to the back to go again."),
     ];
 
     private static string DefaultLineName => $"Line {DateTime.UtcNow:MMM d}";

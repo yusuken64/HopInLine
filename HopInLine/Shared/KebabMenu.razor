@@ -1,14 +1,16 @@
 @using Microsoft.AspNetCore.Components.Web
 
+@* A labeled "More" button that opens a list of big menu items. *@
 <div class="kebab-menu">
     <button
         @onclick="() => isOpen = !isOpen"
         @onkeydown="HandleKeyDown"
         aria-haspopup="menu"
-        aria-expanded="@isOpen"
+        aria-expanded="@(isOpen ? "true" : "false")"
         aria-label="@TriggerAriaLabel"
-        class="kebab-trigger">
-        ⋮
+        disabled="@Disabled"
+        class="btn btn-secondary btn-sm kebab-trigger @(isOpen ? "open" : "")">
+        @TriggerLabel
     </button>
 
     @if (isOpen)
@@ -27,6 +29,9 @@
                     </button>
                 </li>
             }
+            <li role="none">
+                <button role="menuitem" class="kebab-item kebab-item-close" @onclick="() => isOpen = false">✕ Close menu</button>
+            </li>
         </ul>
     }
 </div>
@@ -37,6 +42,13 @@
 
     [Parameter]
     public string TriggerAriaLabel { get; set; } = "More actions";
+
+    /// <summary>Visible text on the button. Spelled out so nobody has to guess what "⋮" means.</summary>
+    [Parameter]
+    public string TriggerLabel { get; set; } = "⋯ More";
+
+    [Parameter]
+    public bool Disabled { get; set; }
 
     private bool isOpen;
 
